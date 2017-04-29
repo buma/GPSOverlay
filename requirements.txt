@@ -4,6 +4,7 @@ cffi==1.10.0
 decorator==4.0.11
 gpxpy==1.1.2
 imageio==2.1.2
+mapnik==0.1
 moviepy==0.2.3.2
 numpy==1.12.1
 olefile==0.44
@@ -12,5 +13,6 @@ Pillow==4.1.0
 pycparser==2.17
 pynmea2==1.7.1
 pyparsing==2.2.0
+pyproj==1.9.5.1
 six==1.10.0
 tqdm==4.11.2
