@@ -54,7 +54,15 @@ class GPXDataSequence(ImageSequenceClip):
 
     interval
       Time between shots. Used to set images times with sub-second precission
-     
+
+    data_clips
+      Dictionary, where key can be one of ['lat', 'lon', 'bearing',
+      'elevation', 'speed', 'heart', 'datetime'] and value is a function which gets
+      wanted value and must output some kind of Clip or None if None clip isn't
+      shown
+      if key x exists x_pos must also exists which has value function with
+      arguments, returned clip from x and width and height for image.
+      this is for setting position of clip     
 
     Notes
     ------
@@ -86,6 +94,8 @@ class GPXDataSequence(ImageSequenceClip):
             self.data_pos = {}
             self.data_clips = {}
             #print ("Keys:", data_clips.keys())
+# Save in self._data_clips only keys that are in GPSData._fields and have _pos
+# Save in self._data_pos only keys with pos that are in GPSData._fields
             for key in GPSData._fields:
                 if key in data_clips:
                     keypos = key+"_pos"
@@ -114,14 +124,16 @@ class GPXDataSequence(ImageSequenceClip):
             index = find_image_index(t)
             gps_info = self.gpx_data[index]._asdict()
             #print (gps_info, self.data_clips)
+# For each wanted datafield make clip and set position
             for key, clip in self.data_clips.items():
                 #print (key, gps_info[key])
-                c = self.data_pos[key+"_pos"](
-                        clip(gps_info[key]), 
+                
+                created_clip = clip(gps_info[key])
+                if created_clip is None:
+                    continue
+                c = self.data_pos[key+"_pos"](created_clip,
                         self.w, self.h)
                 f = c.blit_on(f, t)
-
-            #print ("loalc", index)
             return f
 
         self.orig_make_frame = self.make_frame
