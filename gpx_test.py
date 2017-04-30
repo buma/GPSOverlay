@@ -1,13 +1,16 @@
 import os
 import glob
+import time
 
-from moviepy.video.VideoClip import TextClip
+from moviepy.video.VideoClip import TextClip, ImageClip
 from moviepy.video.fx.resize import resize
 from moviepy.editor import concatenate_videoclips
+from moviepy.video.tools.drawing import color_gradient
 
 from GPXDataSequence import GPXDataSequence
+from render_mapnik import render_map
 
-partial = False
+partial = True
 font="Bitstream-Vera-Sans-Mono-Bold"
 #font="Liberation-Mono-Bold"
 #font="EmojiOne-Color-SVGinOT"
@@ -15,7 +18,7 @@ font="Bitstream-Vera-Sans-Mono-Bold"
 def get_frames(filematch):
     sort = sorted(glob.glob(filematch))
     if partial:
-        return sort[:20]
+        return sort[:220]
     return sort
 
 normal_font = 60
@@ -23,6 +26,12 @@ top=40
 margin=10
 
 large_font=80
+map_w = 500
+map_h = 500
+map_zoom = 19
+map_mask = color_gradient((map_w, map_h), (map_w/2,map_h/2),
+        (map_h/2,0), offset=0.9, shape='radial', col1=1, col2=0.0)
+map_mask_clip = ImageClip(map_mask, ismask=True)
 
 def make_speed_clip(speed):
     if speed*3.6 < 1:
@@ -32,6 +41,12 @@ def make_speed_clip(speed):
     return TextClip(txt,
         fontsize=large_font, font=font, color='white',
         stroke_color='black')
+
+def make_map(map_clip):
+    map_clip = map_clip.set_mask(map_mask_clip)
+    map_clip = map_clip.set_opacity(0.7)
+    return map_clip
+
 
 frames = get_frames("/data2/snemanje/miklavz/original/1/changed/*.JPG")
 frames2 = get_frames("/data2/snemanje/miklavz/original/2/changed/*.JPG")
@@ -56,6 +71,10 @@ data_clips = {
             top+3*(normal_font+margin))),
         'speed': make_speed_clip,
         'speed_pos': lambda t, W,H: t.set_pos((W-t.w-30,H-t.h-200)),
+        'map': make_map,
+        'map_pos': lambda t, W,H: t.set_pos((W/2-t.w-30,
+            H-t.h-100)),
+        
         #'date1_pos': lambda t, W,H: ((W-t.w-30, 30)),
         }
 
@@ -70,28 +89,46 @@ fps=8
 
 gpx_seq = GPXDataSequence(frames[4:], fps, with_mask=False,
         gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx",
-       time_offset=944, data_clips=data_clips )
+       time_offset=944, data_clips=data_clips, map_w=map_w, map_h=map_h,
+       zoom=map_zoom)
 
-gpx_seq2 = GPXDataSequence(frames2[-10:], fps, with_mask=False,
-        gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx",
-       time_offset=-65, data_clips=data_clips )
+#gpx_seq2 = GPXDataSequence(frames2[-10:], fps, with_mask=False,
+        #gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx",
+       #time_offset=-65, data_clips=data_clips )
 
-#for (fn, gps, time) in zip(gpx_seq.sequence, gpx_seq.gpx_data,
-        #gpx_seq.images_starts):
-    #print (os.path.basename(fn), gps.datetime, time, gps.speed*3.6, gps.heart)
+str_format = "{:>3} {:20} {} {:03.3f} {:02.6f} {:02.6f} {:03.2f}°"
+
+#for idx, (fn, gps, time1) in enumerate(zip(gpx_seq.sequence, gpx_seq.gpx_data,
+    #gpx_seq.images_starts)):
+    #print (str_format.format(idx, os.path.basename(fn), gps.datetime, time1, gps.lat, gps.lon,
+        #gps.bearing))
+    #mapname = os.path.join("./map/", "{}.png".format(idx))
+    #if idx%3==0:
+        #if os.path.isfile(mapname):
+            #print (mapname, "Exists")
+        #else:
+            #print ("Rendering ", mapname)
+            #start = time.process_time()
+            #render_map(gps.lat, gps.lon, gps.bearing, mapname)
+            #print ("Rendering took %r s" % (time.process_time()-start,))
 
 #gpx_seq.make_frame(1)
 #gpx_seq.save_frame("nekaj.jpg", 8)
-#gpx_seq.show(1)
 
-if False:
+#both = gpx_seq.fx(resize, height=1080)
+#both.show(8, interactive=True)
 
-    both = concatenate_videoclips([gpx_seq, gpx_seq2])
+if True:
+
+    both = gpx_seq
+
+    #both = concatenate_videoclips([gpx_seq, gpx_seq2])
 
     both = both.fx(resize, height=1080)
 
 
-    both.write_videofile("all1.mp4", fps=25, audio=False, preset='ultrafast',
-            threads=4)
+    #both.write_videofile("all1.mp4", fps=25, audio=False, preset='ultrafast',
+            #threads=4)
+    both.write_images_sequence("/data2/snemanje/output/frame_center2_%05d.jpg")
 
 

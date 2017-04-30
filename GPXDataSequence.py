@@ -1,12 +1,14 @@
+import os
 import datetime
 import sys
 import collections
 
 GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
-'elevation', 'speed', 'heart', 'datetime'])
+'elevation', 'speed', 'heart', 'datetime', 'map'])
 
 #from moviepy.video.VideoClip import VideoClip
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
+from moviepy.video.VideoClip import ImageClip
 
 from PIL import Image
 import PIL.ExifTags
@@ -14,6 +16,7 @@ import PIL.ExifTags
 
 from lib.geo import interpolate_lat_lon, decimal_to_dms
 from lib.gps_parser import get_lat_lon_time_from_gpx
+from render_mapnik import render_map
 
 class GPXDataSequence(ImageSequenceClip):
     """
@@ -57,12 +60,27 @@ class GPXDataSequence(ImageSequenceClip):
 
     data_clips
       Dictionary, where key can be one of ['lat', 'lon', 'bearing',
-      'elevation', 'speed', 'heart', 'datetime'] and value is a function which gets
+      'elevation', 'speed', 'heart', 'datetime', 'map'] and value is a function which gets
       wanted value and must output some kind of Clip or None if None clip isn't
       shown
       if key x exists x_pos must also exists which has value function with
       arguments, returned clip from x and width and height for image.
       this is for setting position of clip     
+      function for 'map' gets image clip of map as argument and can add
+      transparency for it
+
+
+    map_w
+      width of map image
+
+    map_h
+      height of map image
+
+    zoom
+      zoom of map
+
+    map_mapfile
+      path to mapnik XML style
 
     Notes
     ------
@@ -73,7 +91,8 @@ class GPXDataSequence(ImageSequenceClip):
 
     def __init__(self, sequence, fps=None, durations=None, with_mask=True,
             ismask=False, load_images=False, gpx_file=None, time_offset=0,
-            interval=0, data_clips=None):
+            interval=0, data_clips=None, map_w=200, map_h=200, zoom=18,
+            map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"):
 
         if (fps is None) and (durations is None):
             raise ValueError("Please provide either 'fps' or 'durations'.")
@@ -89,6 +108,12 @@ class GPXDataSequence(ImageSequenceClip):
         # read gpx file to get track locations
         gpx = get_lat_lon_time_from_gpx(gpx_file)
         self.gpx_data = []
+        self.gpx_file = gpx_file
+        self.map_width = map_w
+        self.map_height = map_h
+        self.map_zoom = zoom
+        self.map_mapfile = map_mapfile
+        self.maps_cache = "./.map_cache"
 
         if data_clips is not None:
             self.data_pos = {}
@@ -127,8 +152,17 @@ class GPXDataSequence(ImageSequenceClip):
 # For each wanted datafield make clip and set position
             for key, clip in self.data_clips.items():
                 #print (key, gps_info[key])
+
+                data = gps_info[key]
+                if key == 'map':
+#makes new image only every 3 indexes
+                    #k = index//3
+                    #calc_index = 3*k
+                    #print ("index, k, calc", index, k, calc_index)
+                    data = self._get_map_image(index, gps_info['lat'],
+                            gps_info['lon'], gps_info['bearing'])
                 
-                created_clip = clip(gps_info[key])
+                created_clip = clip(data)
                 if created_clip is None:
                     continue
                 c = self.data_pos[key+"_pos"](created_clip,
@@ -139,6 +173,24 @@ class GPXDataSequence(ImageSequenceClip):
         self.orig_make_frame = self.make_frame
         self.make_frame = make_frame
 
+    """ 
+    Gets map clip. If it already exists it's just read, otherwise it's created
+    """
+    def _get_map_image(self, index, center_lat, center_lon, bearing):
+        mapname = os.path.join(self.maps_cache, "{}.png".format(index))
+        #print ("Map image: ", mapname)
+        if not os.path.isfile(mapname):
+            #print ("Render map")
+            #start = time.process_time()
+            render_map(center_lat, center_lon, bearing,
+                    mapname, self.gpx_file, self.map_zoom,
+                    self.map_width, self.map_height,
+                    self.map_mapfile)
+            #print ("Rendering took %r s" % (time.process_time()-start,))
+
+        return ImageClip(mapname)
+
+
 
     def _add_exif_using_timestamp(self, filename, time, points, offset_time=0, offset_bearing=0):
         # subtract offset in s beween gpx time and exif time
@@ -147,7 +199,7 @@ class GPXDataSequence(ImageSequenceClip):
             lat, lon, bearing, elevation, speed, heart = interpolate_lat_lon(points, t)
             corrected_bearing = (bearing + offset_bearing) % 360
             self.gpx_data.append(GPSData(lat, lon, corrected_bearing, elevation,
-                speed, heart, t))
+                speed, heart, t, None))
         except ValueError as e:
             print("Skipping {0}: {1}".format(filename, e))
 
