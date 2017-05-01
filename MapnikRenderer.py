@@ -1,4 +1,5 @@
 import time
+import os
 try:
     import mapnik2 as mapnik
 except:
@@ -64,7 +65,16 @@ class MapnikRenderer(object):
 #y - lat - 46
 #x - lon - 15
 #angle of map, so that to direction is at the top
-    def render_map(self, centrey, centrex, angle, map_uri, zoom=18):
+    def render_map(self, centrey, centrex, angle, map_uri, zoom=18,
+            overwrite=False):
+
+#If we don't want to overwrite and file already exists skip map rendering
+        if not overwrite and os.path.isfile(map_uri):
+            return
+#If we want to overwrite and file exists we remove file
+        if overwrite and os.path.isfile(map_uri):
+            os.remove(map_uri)
+
 
         if angle is None:
 # spherical mercator (most common target map projection of osm data imported with osm2pgsql)
