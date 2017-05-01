@@ -107,7 +107,9 @@ fps=8
 gpx_seq = GPXDataSequence(frames[4:], fps, with_mask=False,
         gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx",
        time_offset=944, data_clips=data_clips, map_w=map_w, map_h=map_h,
-       zoom=map_zoom)
+       zoom=map_zoom, map_mapfile=map_mapfile)
+
+#both = gpx_seq.fx(resize, height=1080)
 
 #gpx_seq2 = GPXDataSequence(frames2[-10:], fps, with_mask=False,
         #gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx",
@@ -123,10 +125,8 @@ str_format = "{:>3} {:20} {} {:03.3f} {:02.6f} {:02.6f} {:03.2f}°"
 #gpx_seq.make_frame(1)
 #gpx_seq.save_frame("nekaj.jpg", 8)
 
-#both = gpx_seq.fx(resize, height=1080)
-#both.show(8, interactive=True)
 
-if True:
+if False:
 
     both = gpx_seq
 
@@ -137,6 +137,10 @@ if True:
 
     #both.write_videofile("all1.mp4", fps=25, audio=False, preset='ultrafast',
             #threads=4)
-    both.write_images_sequence("/data2/snemanje/output/frame_center2_%05d.jpg")
+    both.write_images_sequence("/data2/snemanje/output/frame_center_map2_t_%05d.jpg")
+
+else:
+    both = gpx_seq.fx(resize, height=1080)
+    both.show(8, interactive=True)
 
 

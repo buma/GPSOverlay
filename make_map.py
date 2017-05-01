@@ -20,6 +20,8 @@ map_h = 500
 map_zoom = 18
 gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx"
 map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"
+#map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map.xml"
+#map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map_transparent.xml"
 maps_cache = "./.map_cache1"
 fps=8
 frames = get_frames("/data2/snemanje/miklavz/original/1/changed/*.JPG")
@@ -79,7 +81,7 @@ print ("Starting:")
 num_consumers = multiprocessing.cpu_count()
 print ("Made %d consumers" % (num_consumers, ))
 consumers = [MapnikMultiProcessRenderer(queue, result_queue,
-    map_w, map_h, gpx_file, map_zoom, maps_cache) for i in
+    map_w, map_h, gpx_file, map_zoom, maps_cache, map_mapfile) for i in
         range(num_consumers)]
 
 for idx, gps in enumerate(gpx_seq.gpx_data):
