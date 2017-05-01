@@ -16,7 +16,7 @@ import PIL.ExifTags
 
 from lib.geo import interpolate_lat_lon, decimal_to_dms
 from lib.gps_parser import get_lat_lon_time_from_gpx
-from render_mapnik import render_map
+from MapnikRenderer import MapnikRenderer
 
 class GPXDataSequence(ImageSequenceClip):
     """
@@ -108,12 +108,10 @@ class GPXDataSequence(ImageSequenceClip):
         # read gpx file to get track locations
         gpx = get_lat_lon_time_from_gpx(gpx_file)
         self.gpx_data = []
-        self.gpx_file = gpx_file
-        self.map_width = map_w
-        self.map_height = map_h
         self.map_zoom = zoom
-        self.map_mapfile = map_mapfile
         self.maps_cache = "./.map_cache"
+        self.mapnik_renderer = MapnikRenderer(map_w, map_h, gpx_file,
+                map_mapfile)
 
         if data_clips is not None:
             self.data_pos = {}
@@ -182,10 +180,8 @@ class GPXDataSequence(ImageSequenceClip):
         if not os.path.isfile(mapname):
             #print ("Render map")
             #start = time.process_time()
-            render_map(center_lat, center_lon, bearing,
-                    mapname, self.gpx_file, self.map_zoom,
-                    self.map_width, self.map_height,
-                    self.map_mapfile)
+            self.mapnik_renderer.render_map(center_lat, center_lon, bearing,
+                    mapname, self.map_zoom)
             #print ("Rendering took %r s" % (time.process_time()-start,))
 
         return ImageClip(mapname)

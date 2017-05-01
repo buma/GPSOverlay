@@ -8,7 +8,6 @@ from moviepy.editor import concatenate_videoclips
 from moviepy.video.tools.drawing import color_gradient
 
 from GPXDataSequence import GPXDataSequence
-from render_mapnik import render_map
 
 partial = True
 font="Bitstream-Vera-Sans-Mono-Bold"
@@ -102,15 +101,6 @@ str_format = "{:>3} {:20} {} {:03.3f} {:02.6f} {:02.6f} {:03.2f}°"
     #gpx_seq.images_starts)):
     #print (str_format.format(idx, os.path.basename(fn), gps.datetime, time1, gps.lat, gps.lon,
         #gps.bearing))
-    #mapname = os.path.join("./map/", "{}.png".format(idx))
-    #if idx%3==0:
-        #if os.path.isfile(mapname):
-            #print (mapname, "Exists")
-        #else:
-            #print ("Rendering ", mapname)
-            #start = time.process_time()
-            #render_map(gps.lat, gps.lon, gps.bearing, mapname)
-            #print ("Rendering took %r s" % (time.process_time()-start,))
 
 #gpx_seq.make_frame(1)
 #gpx_seq.save_frame("nekaj.jpg", 8)
