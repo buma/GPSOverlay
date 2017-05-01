@@ -36,29 +36,30 @@ class MapnikRenderer(object):
         mapnik.load_map(self.m, mapfile)
         #print ("loadint took %r s" % (time.process_time()-start,))
 # Create a symbolizer to draw the points
-        style = mapnik.Style()
-        rule = mapnik.Rule()
-        point_symbolizer = mapnik.MarkersSymbolizer()
-        point_symbolizer.allow_overlap = True
-        point_symbolizer.opacity = 0.5 # semi-transparent
-        rule.symbols.append(point_symbolizer)
+        #if "openstreetmap-carto" in mapfile:
 
-        line_symbolizer = mapnik.LineSymbolizer()
-        line_symbolizer.stroke = mapnik.Color('rgb(100%,0%,0%)')
-        line_symbolizer.stroke_width = 0.4
+        if "openstreetmap-carto" in mapfile:
+            style = mapnik.Style()
+            rule = mapnik.Rule()
+            line_symbolizer = mapnik.LineSymbolizer()
+            line_symbolizer.stroke = mapnik.Color('rgb(0%,0%,100%)')
+            line_symbolizer.stroke_width = 4
+            line_symbolizer.stroke_opacity= 0.4
+            line_symbolizer.simplify = 0.1
 
-        rule.symbols.append(line_symbolizer)
-        style.rules.append(rule)
-        self.m.append_style('GPS_tracking_points', style)
+            rule.symbols.append(line_symbolizer)
+            style.rules.append(rule)
+            self.m.append_style('GPS_tracking_points', style)
 
-        if gpx_file is not None:
+
+            if gpx_file is not None:
 # Create a layer to hold GPX points
-            layer = mapnik.Layer('GPS_tracking_points')
-            layer.datasource = mapnik.Ogr(file=gpx_file,
-                    layer='tracks')
-            layer.styles.append('GPS_tracking_points')
-            self.m.layers.append(layer)
-            #print ("symbolizer took %r s" % (time.process_time()-start,))
+                layer = mapnik.Layer('GPS_tracking_points')
+                layer.datasource = mapnik.Ogr(file=gpx_file,
+                        layer='tracks')
+                layer.styles.append('GPS_tracking_points')
+                self.m.layers.append(layer)
+                #print ("symbolizer took %r s" % (time.process_time()-start,))
 
         self.imgx = imgx
         self.imgy = imgy
@@ -86,20 +87,35 @@ class MapnikRenderer(object):
                     str(angle-10))
 
 #Layer with current location:
+            if False:
 
-            gs = ('{ "type":"FeatureCollection", "features": [ {' +
-                        '"type":"Feature", "properties":{"name":"current"},'+
-                            '"geometry": { "type":"Point",' +
-                        '"coordinates":[%f, %f]}}]}' %(centrex, centrey))
-            ds = mapnik.Datasource(
-                    type='geojson',
-                    inline=gs
-                    )
-
-            point = mapnik.Layer('current_point')
-            point.datasource = ds
-            point.styles.append('GPS_tracking_points')
-            self.m.layers.append(point)
+                gs = ('{ "type":"FeatureCollection", "features": [ {' +
+                            '"type":"Feature", "properties":{"name":"current"},'+
+                                '"geometry": { "type":"Point",' +
+                            '"coordinates":[%f, %f]}}]}' %(centrex, centrey))
+                ds = mapnik.Datasource(
+                        type='geojson',
+                        inline=gs
+                        )
+                #point = None
+                for layer in self.m.layers:
+                    if layer.name == "current_point":
+                        point = layer
+                        point.active=False
+                        break
+                point = mapnik.Layer('current_point')
+                point.datasource = ds
+                point.styles.append('GPS_tracking_points')
+                self.m.layers.append(point)
+                #if point is None:
+                    #new=True
+                    #point = mapnik.Layer('current_point')
+                #else:
+                    #new = False
+                #point.datasource = ds
+                #if new:
+                    #point.styles.append('GPS_tracking_points')
+                    #self.m.layers.append(point)
 
 # ensure the target map projection is mercator
         self.m.srs = merc.params()

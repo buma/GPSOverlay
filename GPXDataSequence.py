@@ -177,12 +177,11 @@ class GPXDataSequence(ImageSequenceClip):
     def _get_map_image(self, index, center_lat, center_lon, bearing):
         mapname = os.path.join(self.maps_cache, "{}.png".format(index))
         #print ("Map image: ", mapname)
-        if not os.path.isfile(mapname):
-            #print ("Render map")
-            #start = time.process_time()
-            self.mapnik_renderer.render_map(center_lat, center_lon, bearing,
-                    mapname, self.map_zoom)
-            #print ("Rendering took %r s" % (time.process_time()-start,))
+        #print ("Render map")
+        #start = time.process_time()
+        self.mapnik_renderer.render_map(center_lat, center_lon, bearing,
+                mapname, self.map_zoom)
+        #print ("Rendering took %r s" % (time.process_time()-start,))
 
         return ImageClip(mapname)
 

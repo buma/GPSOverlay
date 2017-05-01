@@ -2,10 +2,11 @@ import os
 import glob
 import time
 
-from moviepy.video.VideoClip import TextClip, ImageClip
+from moviepy.video.VideoClip import TextClip, ImageClip, VideoClip
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.fx.resize import resize
 from moviepy.editor import concatenate_videoclips
-from moviepy.video.tools.drawing import color_gradient
+from moviepy.video.tools.drawing import color_gradient, circle
 
 from GPXDataSequence import GPXDataSequence
 
@@ -31,6 +32,9 @@ map_zoom = 19
 map_mask = color_gradient((map_w, map_h), (map_w/2,map_h/2),
         (map_h/2,0), offset=0.9, shape='radial', col1=1, col2=0.0)
 map_mask_clip = ImageClip(map_mask, ismask=True)
+map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"
+#map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map.xml"
+#map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map_transparent.xml"
 
 def make_speed_clip(speed):
     if speed*3.6 < 1:
@@ -41,10 +45,24 @@ def make_speed_clip(speed):
         fontsize=large_font, font=font, color='white',
         stroke_color='black')
 
+#To make a circle on transparent background
+#We make a circle size, center, radius, inside color RGB, outside
+circle_clip =ImageClip(circle((map_w, map_h), (map_w/2, map_h/2), 8,
+    (0,255,0), (0,0,0)))
+#Make mask from it (channel 1 - green) since it's single color
+circle_mask = circle_clip.to_mask(1)
+#And use it as a mask
+circle_clip = circle_clip.set_mask(circle_mask)
+#We get circle on transparent background
+
+
+
 def make_map(map_clip):
-    map_clip = map_clip.set_mask(map_mask_clip)
-    map_clip = map_clip.set_opacity(0.7)
-    return map_clip
+    #map_clip = map_clip.set_mask(map_mask_clip)
+    #map_clip = map_clip.set_opacity(0.7)
+    #We composite it on map image to get current location point
+    both = CompositeVideoClip([map_clip, circle_clip])
+    return both
 
 
 frames = get_frames("/data2/snemanje/miklavz/original/1/changed/*.JPG")
