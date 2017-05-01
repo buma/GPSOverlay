@@ -1,5 +1,6 @@
 import time
 import os
+import multiprocessing
 try:
     import mapnik2 as mapnik
 except:
@@ -137,6 +138,53 @@ class MapnikRenderer(object):
         print("  Scale Denominator: " + str(m.scale_denominator()))
         print("  Render into file: " + map_uri)
         print("  Image size: " + str(m.width) + "x" + str(m.height))
+
+class MapnikMultiProcessRenderer(multiprocessing.Process):
+
+    def __init__(self, task_queue, result_queue, imgx, imgy,
+            gpx_file=None, zoom=18, maps_cache = "./.map_cache",
+            mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"):
+        multiprocessing.Process.__init__(self)
+        self.task_queue = task_queue
+        self.result_queue = result_queue
+        self.zoom = zoom
+        self.maps_cache = maps_cache
+        self.renderer = MapnikRenderer(imgx, imgy, gpx_file, mapfile)
+        self.cnt_times = 0
+        self.cnt_items = 0
+
+    def run(self):
+        proc_name = self.name
+        while True:
+            next_task = self.task_queue.get()
+            if next_task is None:
+                #print ('%s Exiting' % (proc_name,))
+                if self.cnt_times > 0:
+                   self.result_queue.put('%s done %d tasks in %f s %f items per second' %(proc_name, self.cnt_items,
+                    self.cnt_times, self.cnt_items/self.cnt_times))
+                else:
+                   self.result_queue.put('%s done %d tasks in %f s ' %(proc_name, self.cnt_items,
+                    self.cnt_times))
+                self.task_queue.task_done()
+                break
+            if isinstance(next_task, int):
+                print ('%s done %d tasks in %f s' %(proc_name, self.cnt_items,
+                    self.cnt_times))
+                self.task_queue.task_done()
+                continue
+            #print("%s GOT: %s" % (proc_name, next_task,))
+            index, center_lat, center_lon, bearing = next_task
+            mapname = os.path.join(self.maps_cache, "{}.png".format(index))
+            #print ("Map image: ", mapname)
+            #print ("Got ", index, center_lat, center_lon, bearing, self.zoom)
+            start = time. time()
+            self.renderer.render_map(center_lat, center_lon, bearing,
+                    mapname, self.zoom)
+            self.cnt_times+= time.time()-start
+            self.cnt_items+=1
+
+            self.task_queue.task_done()
+
 
 if __name__ == "__main__":
     centrey, centrex, angle = (46.55711886333333, 15.62431150777778, 137.31216620286796)
