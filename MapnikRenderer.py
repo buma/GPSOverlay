@@ -45,7 +45,7 @@ class MapnikRenderer(object):
             line_symbolizer.stroke = mapnik.Color('rgb(0%,0%,100%)')
             line_symbolizer.stroke_width = 4
             line_symbolizer.stroke_opacity= 0.4
-            line_symbolizer.simplify = 0.1
+            #line_symbolizer.simplify = 0.1
 
             rule.symbols.append(line_symbolizer)
             style.rules.append(rule)

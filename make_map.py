@@ -8,25 +8,26 @@ from tqdm import tqdm
 from GPXDataSequence import GPXDataSequence
 from MapnikRenderer import MapnikRenderer, MapnikMultiProcessRenderer
 
-partial = True
+partial = False
 
 def get_frames(filematch):
     sort = sorted(glob.glob(filematch))
     if partial:
         return sort[:220]
     return sort
-map_w = 500
-map_h = 500
-map_zoom = 18
+map_w = 250
+map_h = 250
+map_zoom = 18.5
 gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx"
-map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"
+#map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"
+map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto_gpx.xml"
 #map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map.xml"
 #map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map_transparent.xml"
-maps_cache = "./.map_cache1"
+maps_cache = "./.map_cache6"
 fps=8
 frames = get_frames("/data2/snemanje/miklavz/original/1/changed/*.JPG")
 
-gpx_seq = GPXDataSequence(frames[4:24], fps, with_mask=False,
+gpx_seq = GPXDataSequence(frames[4:], fps, with_mask=False,
         gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx",
        time_offset=944, map_w=map_w, map_h=map_h,
        zoom=map_zoom)

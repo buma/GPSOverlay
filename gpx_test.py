@@ -9,8 +9,9 @@ from moviepy.editor import concatenate_videoclips
 from moviepy.video.tools.drawing import color_gradient, circle
 
 from GPXDataSequence import GPXDataSequence
+from util import write_run
 
-partial = True
+partial = False
 font="Bitstream-Vera-Sans-Mono-Bold"
 #font="Liberation-Mono-Bold"
 #font="EmojiOne-Color-SVGinOT"
@@ -21,18 +22,21 @@ def get_frames(filematch):
         return sort[:220]
     return sort
 
-normal_font = 60
+normal_font = 30
 top=40
 margin=10
 
-large_font=80
-map_w = 500
-map_h = 500
-map_zoom = 19
+large_font=40
+map_w = 250
+map_h = 250
+map_zoom = 18.5
+#Makes radial mask which is used to blur map as a circle with transparent
+#background
 map_mask = color_gradient((map_w, map_h), (map_w/2,map_h/2),
         (map_h/2,0), offset=0.9, shape='radial', col1=1, col2=0.0)
 map_mask_clip = ImageClip(map_mask, ismask=True)
-map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"
+#map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"
+map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto_gpx.xml"
 #map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map.xml"
 #map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map_transparent.xml"
 
@@ -65,7 +69,8 @@ def make_map(map_clip):
     return both
 
 
-frames = get_frames("/data2/snemanje/miklavz/original/1/changed/*.JPG")
+#frames = get_frames("/data2/snemanje/miklavz/original/1/changed/*.JPG")
+frames = get_frames("/data2/snemanje/miklavz/video1080/*.JPG")
 frames2 = get_frames("/data2/snemanje/miklavz/original/2/changed/*.JPG")
 data_clips = {
         'datetime': lambda dt: TextClip(dt.strftime("%d.%m.%Y %H:%M:%S"),
@@ -87,9 +92,16 @@ data_clips = {
         'bearing_pos': lambda t, W,H: t.set_pos((W-t.w-30,
             top+3*(normal_font+margin))),
         'speed': make_speed_clip,
-        'speed_pos': lambda t, W,H: t.set_pos((W-t.w-30,H-t.h-200)),
+#right bottom
+        #'speed_pos': lambda t, W,H: t.set_pos((W-t.w-30,H-t.h-200)),
+#right bottom above map
+        'speed_pos': lambda t, W,H: t.set_pos((W-t.w-30,H-t.h-30-100-map_h)),
         'map': make_map,
-        'map_pos': lambda t, W,H: t.set_pos((W/2-t.w-30,
+# center
+        #'map_pos': lambda t, W,H: t.set_pos((W/2-t.w-30,
+            #H-t.h-100)),
+#right bottom
+        'map_pos': lambda t, W,H: t.set_pos((W-t.w-30,
             H-t.h-100)),
         
         #'date1_pos': lambda t, W,H: ((W-t.w-30, 30)),
@@ -132,15 +144,22 @@ if False:
 
     #both = concatenate_videoclips([gpx_seq, gpx_seq2])
 
-    both = both.fx(resize, height=1080)
+    #both = both.fx(resize, height=1080)
 
 
-    #both.write_videofile("all1.mp4", fps=25, audio=False, preset='ultrafast',
-            #threads=4)
-    both.write_images_sequence("/data2/snemanje/output/frame_center_map2_t_%05d.jpg")
+    both.write_videofile("all_map_new.mp4", fps=25, audio=False, # preset='ultrafast',
+            threads=4)
+    #seq_fn = "/data2/snemanje/output/frame_right_small_gpx_mzoom_%05d.jpg"
+    #seq_path = os.path.dirname(seq_fn)
+    #seq_name = os.path.basename(seq_fn).replace("%05d", "0*")
+##Write nice name
+    #name = seq_name.replace("*.jpg", "").rstrip("_")
+    #name = "new_small_map_middle_zoom_with_track"
+    #write_run(os.path.join(seq_path,seq_name), os.path.join("./runs", name))
+    #both.write_images_sequence(seq_fn)
 
 else:
-    both = gpx_seq.fx(resize, height=1080)
-    both.show(8, interactive=True)
+    both = gpx_seq # gpx_seq.fx(resize, height=1080)
+    both.show(5, interactive=True)
 
 

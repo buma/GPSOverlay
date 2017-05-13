@@ -109,7 +109,7 @@ class GPXDataSequence(ImageSequenceClip):
         gpx = get_lat_lon_time_from_gpx(gpx_file)
         self.gpx_data = []
         self.map_zoom = zoom
-        self.maps_cache = "./.map_cache"
+        self.maps_cache = "./.map_cache6"
         self.mapnik_renderer = MapnikRenderer(map_w, map_h, gpx_file,
                 map_mapfile)
 
