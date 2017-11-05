@@ -16,7 +16,6 @@ import PIL.ExifTags
 
 from lib.geo import interpolate_lat_lon, decimal_to_dms
 from lib.gps_parser import get_lat_lon_time_from_gpx
-from MapnikRenderer import MapnikRenderer
 
 class GPXDataSequence(ImageSequenceClip):
     """
@@ -110,8 +109,6 @@ class GPXDataSequence(ImageSequenceClip):
         self.gpx_data = []
         self.map_zoom = zoom
         self.maps_cache = "./.map_cache6"
-        self.mapnik_renderer = MapnikRenderer(map_w, map_h, gpx_file,
-                map_mapfile)
 
         if data_clips is not None:
             self.data_pos = {}
@@ -126,6 +123,10 @@ class GPXDataSequence(ImageSequenceClip):
                         self.data_pos[keypos] = data_clips[keypos]
                         self.data_clips[key] = data_clips[key]
                         print ("Added key:", key)
+                        if key == "map":
+                           from MapnikRenderer import MapnikRenderer
+                           self.mapnik_renderer = MapnikRenderer(map_w, map_h,
+                           gpx_file, map_mapfile)
                     else:
                         print(keypos+" is missing in data clips, but "+key+
                                 " does exist!")
