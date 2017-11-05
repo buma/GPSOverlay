@@ -102,8 +102,8 @@ class GPXDataSequence(ImageSequenceClip):
         super(GPXDataSequence, self).__init__(sequence, fps, durations, with_mask,
                 ismask, load_images)
         # Estimate capture time with sub-second precision
-        sub_second_times = self._estimate_sub_second_time(sequence, interval)
-        if not sub_second_times:
+        image_creation_times = self._estimate_sub_second_time(sequence, interval)
+        if not image_creation_times:
             sys.exit(1)
         # read gpx file to get track locations
         gpx = get_lat_lon_time_from_gpx(gpx_file)
@@ -131,8 +131,12 @@ class GPXDataSequence(ImageSequenceClip):
                                 " does exist!")
             print(self.data_clips)
 
-        for filepath, filetime in zip(sequence, sub_second_times):
-            self._add_exif_using_timestamp(filepath, filetime, gpx,
+	#For each image in sequence based on imagecreation time and gpx file time offset
+	# find closest saved track_point in gpx file and interpolate lat,lon, elevation, speed etc
+	#So that self.gpx_data has same number of items as input self.sequence
+	#And each item is GPSData with information at this point in time as image was creatd
+        for filepath, file_creation_time in zip(sequence, image_creation_times):
+            self._add_exif_using_timestamp(filepath, file_creation_time, gpx,
                     time_offset, 0)
             #break
         assert (len(self.sequence)==len(self.gpx_data)) 
@@ -186,10 +190,11 @@ class GPXDataSequence(ImageSequenceClip):
         return ImageClip(mapname)
 
 
-
-    def _add_exif_using_timestamp(self, filename, time, points, offset_time=0, offset_bearing=0):
+    #Adds lat,lon, bearing, elevation,speed, heart, time to gpx_data list at time when gilename image was created
+    #Those information are interpolated from points array and found based on offset_time 
+    def _add_exif_using_timestamp(self, filename, file_creation_time, points, offset_time=0, offset_bearing=0):
         # subtract offset in s beween gpx time and exif time
-        t = time - datetime.timedelta(seconds=offset_time)
+        t = file_creation_time - datetime.timedelta(seconds=offset_time)
         try:
             lat, lon, bearing, elevation, speed, heart = interpolate_lat_lon(points, t)
             corrected_bearing = (bearing + offset_bearing) % 360
@@ -205,6 +210,9 @@ class GPXDataSequence(ImageSequenceClip):
         EXIF times are only given up to a second of precission. This function
         uses the given interval between shots to Estimate the time inside that
         second that each picture was taken.
+
+	If interval is 0 it just returns list of datetimes which are
+	 DateTimeOriginal from EXIF of given files
         '''
         def exif_time(filename):
             img = Image.open(filename, "r")

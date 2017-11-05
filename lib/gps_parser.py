@@ -23,10 +23,13 @@ def get_lat_lon_time_from_gpx(gpx_file, local_time=True):
     '''
     Read location and time stamps from a track in a GPX file.
 
-    Returns a list of tuples (time, lat, lon).
+    Returns a list of tuples (time, lat, lon, elevation, speed, hr).
 
     GPX stores time in UTC, by default we assume your camera used the local time
     and convert accordingly.
+    So times are in local time converted from UTC based on current date
+    difference. Times can be wrong if DST happened between recording of track
+    and now.
     '''
     with open(gpx_file, 'r') as f:
         gpx = gpxpy.parse(f, None, '1.1')
