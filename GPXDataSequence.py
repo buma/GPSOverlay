@@ -11,6 +11,7 @@ from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 from moviepy.video.VideoClip import ImageClip
 
 import exifread
+from ChartMaker import ChartMaker
 
 from lib.geo import interpolate_lat_lon, decimal_to_dms
 from lib.gps_parser import get_lat_lon_time_from_gpx
@@ -86,6 +87,8 @@ class GPXDataSequence(ImageSequenceClip):
     
     """
 
+    chart_clips = set(["elevation", "speed", "heart"])
+
     def __init__(self, sequence, fps=None, durations=None, with_mask=True,
             ismask=False, load_images=False, gpx_file=None, time_offset=0,
             interval=0, data_clips=None, map_w=200, map_h=200, zoom=18,
@@ -107,6 +110,7 @@ class GPXDataSequence(ImageSequenceClip):
         self.gpx_data = []
         self.map_zoom = zoom
         self.maps_cache = "./.map_cache6"
+        self.chart_data = {}
 
         if data_clips is not None:
             self.data_pos = {}
@@ -128,6 +132,16 @@ class GPXDataSequence(ImageSequenceClip):
                     else:
                         print(keypos+" is missing in data clips, but "+key+
                                 " does exist!")
+                    if key in self.chart_clips:
+                        key_chart = key+"_chart"
+                        if key_chart in data_clips:
+                            key_chart_pos = key_chart+"_pos"
+                            if key_chart_pos in data_clips:
+                                self.data_pos[key_chart_pos] = data_clips[key_chart_pos]
+                                self.data_clips[key_chart] = data_clips[key_chart]
+                                print ("Added key:", key_chart)
+                            else:
+                                print (key_chart_pos+" is missing in data clips, but " + key_chart + " does exists!")
             print(self.data_clips)
 
 	#For each image in sequence based on imagecreation time and gpx file time offset
@@ -154,14 +168,21 @@ class GPXDataSequence(ImageSequenceClip):
             for key, clip in self.data_clips.items():
                 #print (key, gps_info[key])
 
-                data = gps_info[key]
-                if key == 'map':
+                if key.endswith("_chart"):
+                    nkey = key.replace("_chart", "")
+                    value = gps_info[nkey]
+                    if nkey not in self.chart_data:
+                        self.chart_data[nkey] = ChartMaker(self.gpx_data, nkey)
+                    data = self.chart_data[nkey].make_chart_at(index)
+                elif key == 'map':
 #makes new image only every 3 indexes
                     #k = index//3
                     #calc_index = 3*k
                     #print ("index, k, calc", index, k, calc_index)
                     data = self._get_map_image(index, gps_info['lat'],
                             gps_info['lon'], gps_info['bearing'])
+                else:
+                    data = gps_info[key]
                 
                 created_clip = clip(data)
                 if created_clip is None:
