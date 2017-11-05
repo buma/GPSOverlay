@@ -18,3 +18,4 @@ pyproj==1.9.5.1
 six==1.10.0
 svgutils==0.3.0
 tqdm==4.11.2
+ExifRead==2.1.2

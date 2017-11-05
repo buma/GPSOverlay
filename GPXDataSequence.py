@@ -10,9 +10,7 @@ GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 from moviepy.video.VideoClip import ImageClip
 
-from PIL import Image
-import PIL.ExifTags
-
+import exifread
 
 from lib.geo import interpolate_lat_lon, decimal_to_dms
 from lib.gps_parser import get_lat_lon_time_from_gpx
@@ -216,14 +214,12 @@ class GPXDataSequence(ImageSequenceClip):
 	 DateTimeOriginal from EXIF of given files
         '''
         def exif_time(filename):
-            img = Image.open(filename, "r")
-            exif = {
-                    PIL.ExifTags.TAGS[k]: v
-                    for k, v in img._getexif().items()
-                    if k in PIL.ExifTags.TAGS
-                    }
-            dt_str = exif["DateTimeOriginal"]
-            dt = datetime.datetime.strptime(dt_str, "%Y:%m:%d %H:%M:%S")
+            img = open(filename, 'rb')
+            tags = exifread.process_file(img, details=False,
+                    stop_tag="EXIF DateTimeOriginal")
+            dt_str = tags["EXIF DateTimeOriginal"]
+            #print (dt_str)
+            dt = datetime.datetime.strptime(str(dt_str), "%Y:%m:%d %H:%M:%S")
             return dt
 
         if interval <= 0.0:
