@@ -172,7 +172,8 @@ class GPXDataSequence(ImageSequenceClip):
                     nkey = key.replace("_chart", "")
                     value = gps_info[nkey]
                     if nkey not in self.chart_data:
-                        self.chart_data[nkey] = ChartMaker(self.gpx_data, nkey)
+                        self.chart_data[nkey] = ChartMaker(self.gpx_data, nkey,
+                                (self.size[0], 100))
                     data = self.chart_data[nkey].make_chart_at(index)
                 elif key == 'map':
 #makes new image only every 3 indexes
