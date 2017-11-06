@@ -28,38 +28,52 @@ class MapnikRenderer(object):
 
     def __init__(self, imgx, imgy,
             gpx_file=None,
-            mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"):
+            gpx_style=None,
+            mapfile=None):
         #start = time.process_time()
         self.m = mapnik.Map(imgx, imgy)
         #print ("Mapnik took %r s" % (time.process_time()-start,))
         #start = time.process_time()
-        mapnik.load_map(self.m, mapfile)
+        if mapfile is None:
+            self.m.background = mapnik.Color('rgb(0,0,0,0)') #transparent
+        else:
+            mapnik.load_map(self.m, mapfile)
         #print ("loadint took %r s" % (time.process_time()-start,))
 # Create a symbolizer to draw the points
         #if "openstreetmap-carto" in mapfile:
 
-        if "openstreetmap-carto" in mapfile:
-            style = mapnik.Style()
-            rule = mapnik.Rule()
-            line_symbolizer = mapnik.LineSymbolizer()
-            line_symbolizer.stroke = mapnik.Color('rgb(0%,0%,100%)')
-            line_symbolizer.stroke_width = 4
-            line_symbolizer.stroke_opacity= 0.4
-            #line_symbolizer.simplify = 0.1
+#Why this doesn't draw gpx line, but if we save xml and draw map with it line
+#is drawn
+        #style = mapnik.Style()
+        #style.filter_mode=mapnik.filter_mode.FIRST
+        #rule = mapnik.Rule()
+        #line_symbolizer = mapnik.LineSymbolizer()
+        #line_symbolizer.stroke = mapnik.Color('rgb(0%,0%,100%)')
+        #line_symbolizer.stroke_width = 4
+        #line_symbolizer.stroke_opacity= 0.4
+        ##line_symbolizer.simplify = 0.1
 
-            rule.symbols.append(line_symbolizer)
-            style.rules.append(rule)
-            self.m.append_style('GPS_tracking_points', style)
+        #rule.symbols.append(line_symbolizer)
+        #style.rules.append(rule)
+        #self.m.append_style('gps', style)
+        #print ("Making style")
 
 
-            if gpx_file is not None:
+        if gpx_file is not None and gpx_style is not None:
 # Create a layer to hold GPX points
-                layer = mapnik.Layer('GPS_tracking_points')
-                layer.datasource = mapnik.Ogr(file=gpx_file,
-                        layer='tracks')
-                layer.styles.append('GPS_tracking_points')
-                self.m.layers.append(layer)
-                #print ("symbolizer took %r s" % (time.process_time()-start,))
+            print ("Adding GPX file")
+            layer = mapnik.Layer(gpx_style)
+            layer.datasource = mapnik.Ogr(file=gpx_file,
+                    layer='tracks')
+            layer.styles.append(gpx_style)
+            self.m.layers.append(layer)
+            #print (self.m.layers)
+            #print ("symbolizer took %r s" % (time.process_time()-start,))
+            #mapnik.save_map(self.m,
+                    #"/home/mabu/Documents/MapBox/project/openstreetmap-carto1/file.xml")
+            #mapnik.save_map(self.m, "file.xml")
+        #for layer in self.m.layers:
+            #print (layer.name)
 
         self.imgx = imgx
         self.imgy = imgy
@@ -76,6 +90,10 @@ class MapnikRenderer(object):
 #If we want to overwrite and file exists we remove file
         if overwrite and os.path.isfile(map_uri):
             os.remove(map_uri)
+
+        #self.m.zoom_all()
+        #mapnik.render_to_file(self.m, map_uri)
+        #return
 
 
         if angle is None:
@@ -207,4 +225,9 @@ if __name__ == "__main__":
     #render_map(centrey, centrex, angle, "map_aeqd137_18.png")
     centrey, centrex, angle = (46.556164420769235, 15.624496195384616, 191.10020115018185)
     #render_map(centrey, centrex, angle, "map_aeqd1191_18.png")
-    render_map(46.5102,15.6956,None,"testmap.png", zoom=15,imgx=500,imgy=500)
+    #render_map(46.5102,15.6956,None,"testmap.png", zoom=15,imgx=500,imgy=500)
+    m = MapnikRenderer(500,500, gpx_file="/data2/snemanje/20171016/data.gpx")
+            #mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/file.xml")
+            #mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto_gpx.xml")
+    m.render_map(46.556164420769235, 15.624496195384616, None,
+            "./test/testmap_gpx.png", overwrite=True)
