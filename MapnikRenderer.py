@@ -26,12 +26,13 @@ class MapnikRenderer(object):
 # can also be constructed as:
 #longlat = mapnik.Projection('+init=epsg:4326')
 
-    def __init__(self, imgx, imgy,
+    def __init__(self, map_w, map_h,
             gpx_file=None,
             gpx_style=None,
+            map_zoom=18,
             mapfile=None):
         #start = time.process_time()
-        self.m = mapnik.Map(imgx, imgy)
+        self.m = mapnik.Map(map_w, map_h)
         #print ("Mapnik took %r s" % (time.process_time()-start,))
         #start = time.process_time()
         if mapfile is None:
@@ -58,7 +59,15 @@ class MapnikRenderer(object):
         #self.m.append_style('gps', style)
         #print ("Making style")
 
+        self.draw_gpx_track(gpx_file, gpx_style)
 
+
+
+        self.imgx = map_w
+        self.imgy = map_h
+        self.map_zoom = map_zoom
+
+    def draw_gpx_track(self, gpx_file, gpx_style):
         if gpx_file is not None and gpx_style is not None:
 # Create a layer to hold GPX points
             print ("Adding GPX file")
@@ -75,13 +84,10 @@ class MapnikRenderer(object):
         #for layer in self.m.layers:
             #print (layer.name)
 
-        self.imgx = imgx
-        self.imgy = imgy
-
 #y - lat - 46
 #x - lon - 15
 #angle of map, so that to direction is at the top
-    def render_map(self, centrey, centrex, angle, map_uri, zoom=18,
+    def render_map(self, centrey, centrex, angle, map_uri, zoom=None,
             overwrite=False):
 
 #If we don't want to overwrite and file already exists skip map rendering
@@ -90,6 +96,8 @@ class MapnikRenderer(object):
 #If we want to overwrite and file exists we remove file
         if overwrite and os.path.isfile(map_uri):
             os.remove(map_uri)
+        if zoom is None:
+            zoom = self.map_zoom
 
         #self.m.zoom_all()
         #mapnik.render_to_file(self.m, map_uri)
@@ -105,6 +113,7 @@ class MapnikRenderer(object):
                     str(angle-10))
 
 #Layer with current location:
+#TODO add drawing current point
             if False:
 
                 gs = ('{ "type":"FeatureCollection", "features": [ {' +
@@ -134,6 +143,9 @@ class MapnikRenderer(object):
                 #if new:
                     #point.styles.append('GPS_tracking_points')
                     #self.m.layers.append(point)
+                #mapnik.save_map(self.m, "file.xml")
+                #for layer in self.m.layers:
+                    #print (layer.name)
 
 # ensure the target map projection is mercator
         self.m.srs = merc.params()

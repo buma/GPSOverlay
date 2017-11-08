@@ -91,9 +91,7 @@ class GPXDataSequence(ImageSequenceClip):
 
     def __init__(self, sequence, fps=None, durations=None, with_mask=True,
             ismask=False, load_images=False, gpx_file=None, time_offset=0,
-            interval=0, data_clips=None, map_w=200, map_h=200, zoom=18,
-            map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"):
-
+            interval=0, data_clips=None, clip_configs=None):
         if (fps is None) and (durations is None):
             raise ValueError("Please provide either 'fps' or 'durations'.")
 
@@ -108,9 +106,17 @@ class GPXDataSequence(ImageSequenceClip):
         # read gpx file to get track locations
         gpx = get_lat_lon_time_from_gpx(gpx_file)
         self.gpx_data = []
-        self.map_zoom = zoom
-        self.maps_cache = "./.map_cache6"
+        self.maps_cache = "./.map_cacheParenzana"
         self.chart_data = {}
+
+        """Clip argument is anything not starting with _
+        and not class"""
+        def is_argument(argument):
+            if argument.startswith("_"):
+                return False
+            if argument == "class":
+                return False
+            return True
 
         if data_clips is not None:
             self.data_pos = {}
@@ -125,10 +131,15 @@ class GPXDataSequence(ImageSequenceClip):
                         self.data_pos[keypos] = data_clips[keypos]
                         self.data_clips[key] = data_clips[key]
                         print ("Added key:", key)
-                        if key == "map":
-                           from MapnikRenderer import MapnikRenderer
-                           self.mapnik_renderer = MapnikRenderer(map_w, map_h,
-                           gpx_file, map_mapfile)
+                        if key in clip_configs:
+                            clip_config = clip_configs[key]
+                            args = {k:v for k,v in clip_config.items() if \
+                                   is_argument(k) }
+                            if "_gpx_file" in clip_config:
+                               if clip_config.get("_gpx_file", False):
+                                   args["gpx_file"] = gpx_file
+#FIXME: this needs to be map of clips with some kind of API
+                            self.mapnik_renderer = clip_config["class"](**args) 
                     else:
                         print(keypos+" is missing in data clips, but "+key+
                                 " does exist!")
@@ -205,7 +216,7 @@ class GPXDataSequence(ImageSequenceClip):
         #print ("Render map")
         #start = time.process_time()
         self.mapnik_renderer.render_map(center_lat, center_lon, bearing,
-                mapname, self.map_zoom)
+                mapname)
         #print ("Rendering took %r s" % (time.process_time()-start,))
 
         return ImageClip(mapname)
