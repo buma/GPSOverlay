@@ -12,6 +12,7 @@ from moviepy.video.VideoClip import ImageClip
 
 import exifread
 from ChartMaker import ChartMaker
+from gpxpy import geo
 
 from lib.exif import EXIF
 
@@ -227,9 +228,15 @@ class GPXDataSequence(ImageSequenceClip):
             lon = geo_data["longitude"]
             elevation = geo_data["altitude"]
             bearing = exif.extract_direction()
-#TODO: add speed
+            speed = None
+            if self.gpx_data:
+                last = self.gpx_data[-1]
+                seconds = (t-last.datetime).total_seconds()
+                length = geo.distance(last.lat, last.lon, last.elevation, lat,
+                        lon, elevation)
+                speed = length / float(seconds)
             self.gpx_data.append(GPSData(lat, lon, bearing, elevation,
-                None, None, t, None))
+                speed, None, t, None))
         except ValueError as e:
             print("Skipping {0}: {1}".format(filename, e))
 
