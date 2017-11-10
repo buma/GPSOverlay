@@ -4,7 +4,7 @@ import sys
 import collections
 
 GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
-'elevation', 'speed', 'heart', 'datetime', 'map'])
+'elevation', 'speed', 'heart', 'datetime', 'map', 'slope'])
 
 #from moviepy.video.VideoClip import VideoClip
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
@@ -229,14 +229,16 @@ class GPXDataSequence(ImageSequenceClip):
             elevation = geo_data["altitude"]
             bearing = exif.extract_direction()
             speed = None
+            slope = None
             if self.gpx_data:
                 last = self.gpx_data[-1]
                 seconds = (t-last.datetime).total_seconds()
                 length = geo.distance(last.lat, last.lon, last.elevation, lat,
                         lon, elevation)
                 speed = length / float(seconds)
+                slope = round((elevation-last.elevation)/length*100)
             self.gpx_data.append(GPSData(lat, lon, bearing, elevation,
-                speed, None, t, None))
+                speed, None, t, None, slope))
         except ValueError as e:
             print("Skipping {0}: {1}".format(filename, e))
 
