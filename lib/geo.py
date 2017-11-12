@@ -167,18 +167,20 @@ def interpolate_lat_lon(points, t, max_dt=1):
         if t < points[0][0]:
             before = points[0]
             after = points[1]
+            idx = 1
         else:
             before = points[-2]
             after = points[-1]
+            idx = -1
         bearing = compute_bearing(before[1], before[2], after[1], after[2])
 
         if t==points[0][0]:
             x = points[0]
-            return (x[1], x[2], bearing, x[3], x[4], x[5])
+            return (x[1], x[2], bearing, x[3], x[4], x[5], 0)
 
         if t==points[-1][0]:
             x = points[-1]
-            return (x[1], x[2], bearing, x[3], x[4], x[5])
+            return (x[1], x[2], bearing, x[3], x[4], x[5], -1)
     else:
         for i,point in enumerate(points):
             if t<point[0]:
@@ -187,6 +189,7 @@ def interpolate_lat_lon(points, t, max_dt=1):
                 else:
                     before = points[i]
                 after = points[i]
+                idx = i
                 break
 
     # time diff
@@ -224,4 +227,4 @@ def interpolate_lat_lon(points, t, max_dt=1):
         hr = 0
 
 
-    return lat, lon, bearing, ele, speed, hr
+    return lat, lon, bearing, ele, speed, hr, idx

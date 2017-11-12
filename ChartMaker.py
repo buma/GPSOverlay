@@ -15,8 +15,11 @@ class ChartMaker(object):
         width, height = figure_size
         self.opacity = opacity
         self.transparent = transparent
-        elevations = [getattr(gps_point, wanted_value) for gps_point in gpx_data]
+        #elevations = [getattr(gps_point, wanted_value) for gps_point in gpx_data]
+        idx = gpx_data.index_for[wanted_value]
+        elevations = [point[idx] for point in gpx_data.gpx]
         self.fig, ax = plt.subplots()
+        #ax.fill_between(range(0,len(elevations)), 0, elevations)
         self.fig.set_size_inches(width/dpi, height/dpi)
         self.fig.set_dpi(dpi)
         self.p = ax.plot(elevations, '-go', alpha=self.opacity)

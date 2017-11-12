@@ -10,11 +10,10 @@ GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 from moviepy.video.VideoClip import ImageClip
 
-import exifread
 from ChartMaker import ChartMaker
 from gpxpy import geo
+from gpxdata import GPXData
 
-from lib.exif import EXIF
 
 class GPXDataSequence(ImageSequenceClip):
     """
@@ -88,18 +87,40 @@ class GPXDataSequence(ImageSequenceClip):
     """
 
     chart_clips = set(["elevation", "speed", "heart"])
+    FORMAT="%Y%m%d_%H%M%S.JPG"
 
     def __init__(self, sequence, fps=None, durations=None, with_mask=True,
             ismask=False, load_images=False, gpx_file=None, time_offset=0,
-            interval=0, data_clips=None, clip_configs=None):
+            interval=0, speedup_factor=24, data_clips=None, clip_configs=None):
         if (fps is None) and (durations is None):
             raise ValueError("Please provide either 'fps' or 'durations'.")
 
+        def make_time_diff(func, sequence):
+            """Makes time difference for sequence
+            and function which should return datetime
+            """
+            prev = None
+            for file, dt in map(func, sorted(sequence)):
+                if prev is not None:
+                    yield (dt-prev).seconds, file
+                prev = dt
+
         #ImageSequenceClip.__init__(self,sequence, fps, durations, with_mask,
                 #ismask, load_images)
+        #durations = [x[0]/24 for x in self.make_time_diff(self._add_geo_using_exif,
+                #sequence)]
+        self.speedup_factor = speedup_factor
+#Reads image names and plays them for as far as they exists (images taken 5
+        #seconds appart are shown for 5 seconds
+#Because this would be slow speedup_factor is made 24 makes images taken 3
+        #seconds appart play at 8 FPS
+        durations = [x[0]/speedup_factor for x in make_time_diff(lambda x: (os.path.basename(x),
+            datetime.datetime.strptime(os.path.basename(x), GPXDataSequence.FORMAT)),
+            sequence)]
+        fps=None
         super(GPXDataSequence, self).__init__(sequence, fps, durations, with_mask,
                 ismask, load_images)
-        self.gpx_data = []
+        self.gpx_data = GPXData(sequence, gpx_file=gpx_file)
         self.maps_cache = "./.map_cacheParenzana"
         self.chart_data = {}
 
@@ -149,17 +170,10 @@ class GPXDataSequence(ImageSequenceClip):
                                 print (key_chart_pos+" is missing in data clips, but " + key_chart + " does exists!")
             print(self.data_clips)
 
-	#For each image in sequence get lat/lon/elevation/time based on GPS
-        #exif tags
-	#So that self.gpx_data has same number of items as input self.sequence
-	#And each item is GPSData with information at this point in time as image was creatd
-        for filepath in sequence:
-            self._add_geo_using_exif(filepath, time_offset)
 
             #break
-        assert (len(self.sequence)==len(self.gpx_data)) 
+        assert (len(self.sequence)==len(self.gpx_data.gpx_data)) 
                 #"Size of input sequence and GPS is not the same")
-
 
         def make_frame(t):
             f = self.orig_make_frame(t)
@@ -167,7 +181,10 @@ class GPXDataSequence(ImageSequenceClip):
                 return max([i for i in range(len(self.sequence))
                     if self.images_starts[i]<=t])
             index = find_image_index(t)
-            gps_info = self.gpx_data[index]._asdict()
+            #print ("idx", index, self.images_starts[index]*24)
+            time_start = t*self.speedup_factor
+            gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
+            gps_info = gps_info._asdict()
             #print (gps_info, self.data_clips)
 # For each wanted datafield make clip and set position
             for key, clip in self.data_clips.items():
@@ -179,13 +196,14 @@ class GPXDataSequence(ImageSequenceClip):
                     if nkey not in self.chart_data:
                         self.chart_data[nkey] = ChartMaker(self.gpx_data, nkey,
                                 (self.size[0], 100))
-                    data = self.chart_data[nkey].make_chart_at(index)
+                    data = self.chart_data[nkey].make_chart_at(gpx_index)
                 elif key == 'map':
 #makes new image only every 3 indexes
                     #k = index//3
                     #calc_index = 3*k
                     #print ("index, k, calc", index, k, calc_index)
-                    data = self._get_map_image(index, gps_info['lat'],
+                    gpx_name = self.make_name(gps_info)
+                    data = self._get_map_image(gpx_name, gps_info['lat'],
                             gps_info['lon'], gps_info['bearing'])
                 else:
                     data = gps_info[key]
@@ -203,6 +221,12 @@ class GPXDataSequence(ImageSequenceClip):
         self.orig_make_frame = self.make_frame
         self.make_frame = make_frame
 
+    @staticmethod
+    def make_name(gps_info):
+        lat = round(gps_info['lat']*10**5)
+        lon = round(gps_info['lon']*10**5)
+        return "{}_{}".format(lat, lon)
+
     """ 
     Gets map clip. If it already exists it's just read, otherwise it's created
     """
@@ -216,30 +240,3 @@ class GPXDataSequence(ImageSequenceClip):
         #print ("Rendering took %r s" % (time.process_time()-start,))
 
         return ImageClip(mapname)
-
-    def _add_geo_using_exif(self, filename, offset_time=0):
-        try:
-            exif = EXIF(filename)
-            # subtract offset in s beween gpx time and exif time
-            t = exif.extract_capture_time() - \
-                datetime.timedelta(seconds=offset_time)
-            geo_data = exif.extract_geo()
-            lat = geo_data["latitude"]
-            lon = geo_data["longitude"]
-            elevation = geo_data["altitude"]
-            bearing = exif.extract_direction()
-            speed = None
-            slope = None
-            if self.gpx_data:
-                last = self.gpx_data[-1]
-                seconds = (t-last.datetime).total_seconds()
-                length = geo.distance(last.lat, last.lon, last.elevation, lat,
-                        lon, elevation)
-                speed = length / float(seconds)
-                slope = round((elevation-last.elevation)/length*100)
-            self.gpx_data.append(GPSData(lat, lon, bearing, elevation,
-                speed, None, t, None, slope))
-        except ValueError as e:
-            print("Skipping {0}: {1}".format(filename, e))
-
-
