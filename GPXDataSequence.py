@@ -186,31 +186,7 @@ class GPXDataSequence(ImageSequenceClip):
                     if self.images_starts[i]<=t])
             index = find_image_index(t)
             time_start = t*self.speedup_factor
-            break_video = BreakType.NO
-            if len(self.images_starts) > (index+1):
-                next_image_start = self.images_starts[index+1]*self.speedup_factor
-                is_break = self.gpx_data.is_break(index,
-                    self.images_starts[index]*self.speedup_factor,
-                        next_image_start, self.effect_length,
-                        self.speedup_factor)
-                if is_break:
-                    is_start_break = t-self.images_starts[index] <= self.effect_length
-                    is_end_break = self.images_starts[index+1]-t <= self.effect_length
-                    if is_start_break:
-                        #print ("BREAK: Start break")
-                        break_video = BreakType.START
-                    elif is_end_break:
-                        #print ("BREAK: end break")
-                        break_video = BreakType.END
-                    else:
-                        #print ("BREAK: middle break")
-                        break_video = BreakType.MIDDLE
-                #print (t, "idx", index,"duration", self.durations[index]*self.speedup_factor,
-                        #self.images_starts[index+1]*self.speedup_factor-t,
-                        #self.images_starts[index+1]*self.speedup_factor,
-                        #self.images_starts[index]*self.speedup_factor,
-                        #t-self.images_starts[index],
-                        #self.images_starts[index+1]-t)
+            break_video = self.find_break(index, t)
             gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
             gps_info = gps_info._asdict()
             #print (gps_info, self.data_clips)
@@ -315,6 +291,38 @@ class GPXDataSequence(ImageSequenceClip):
 
         self.orig_make_frame = self.make_frame
         self.make_frame = make_frame
+
+    def find_break(self, index,  t):
+        """Checks if current image is in a break
+
+        and which part of a break. Start, Middle or End
+        """
+        break_video = BreakType.NO
+        if len(self.images_starts) > (index+1):
+            next_image_start = self.images_starts[index+1]*self.speedup_factor
+            is_break = self.gpx_data.is_break(index,
+                self.images_starts[index]*self.speedup_factor,
+                    next_image_start, self.effect_length,
+                    self.speedup_factor)
+            if is_break:
+                is_start_break = t-self.images_starts[index] <= self.effect_length
+                is_end_break = self.images_starts[index+1]-t <= self.effect_length
+                if is_start_break:
+                    #print ("BREAK: Start break")
+                    break_video = BreakType.START
+                elif is_end_break:
+                    #print ("BREAK: end break")
+                    break_video = BreakType.END
+                else:
+                    #print ("BREAK: middle break")
+                    break_video = BreakType.MIDDLE
+            #print (t, "idx", index,"duration", self.durations[index]*self.speedup_factor,
+                    #self.images_starts[index+1]*self.speedup_factor-t,
+                    #self.images_starts[index+1]*self.speedup_factor,
+                    #self.images_starts[index]*self.speedup_factor,
+                    #t-self.images_starts[index],
+                    #self.images_starts[index+1]-t)
+        return break_video
 
     @staticmethod
     def make_name(gps_info, width=None, height=None):
