@@ -36,6 +36,24 @@ class GPXData(object):
                 'heart':5
                 }
 
+    def is_break(self, index, seconds_from_start, next_image_start,
+            effect_length, speedup_factor):
+        """Checks if this image is last in recording break.
+
+        Recording break is last image when we stopped recording and we moved
+        more then 10 meters to next image. And takes more then
+        2*effect_length+2 time.
+
+        2 times effect_length is for zooming in/out map 2 seconds is for
+        showing the map. Time is for actual time not recording time.
+        """
+        gpx_start, index_start = self.get_geo_at(index, seconds_from_start)
+        gpx_end, index_end = self.get_geo_at(index, next_image_start)
+        distance = geo.distance(gpx_start.lat, gpx_start.lon, gpx_start.elevation,
+                gpx_end.lat, gpx_end.lon, gpx_end.elevation)
+
+        return (next_image_start-seconds_from_start)/speedup_factor > (2*effect_length+2) and  distance > 10
+
     def get_geo_at(self, index, seconds_from_start, return_index=False):
         """Gets geo information based on time from start"""
         #TODO: make it work if offsets differ

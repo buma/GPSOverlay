@@ -12,3 +12,15 @@ def make_offsets(time_offset, max_diff=5):
         else:
             yield time_offset+x
             yield time_offset-x
+
+def make_func(x_values, y_values):
+    """Makes linear interpolating function
+
+    that interpolates from given x_values to y_values
+    from x values to y values"""
+    x0, x1 = x_values
+    y0, y1 = y_values
+    k=(y1-y0)/(x1-x0)
+    n=y1-k*x1
+    return lambda x: k*x+n
+

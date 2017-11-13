@@ -88,7 +88,7 @@ class MapnikRenderer(object):
 #x - lon - 15
 #angle of map, so that to direction is at the top
     def render_map(self, centrey, centrex, angle, map_uri, zoom=None,
-            overwrite=False):
+            overwrite=False, img_width=None, img_height=None):
 
 #If we don't want to overwrite and file already exists skip map rendering
         if not overwrite and os.path.isfile(map_uri):
@@ -154,10 +154,17 @@ class MapnikRenderer(object):
         transform = mapnik.ProjTransform(MapnikRenderer.longlat, merc)
         merc_centre = transform.forward(centre)
 
+        width = self.imgx if img_width is None else img_width
+        height = self.imgy if img_height is None else img_height
+        #print ("img_width: {} imgx:{} width:{}".format(img_width, self.imgx, width))
+
+        if img_width is not None and img_height is not None:
+            self.m.resize(width, height)
+
 # 360/(2**zoom) degrees = 256 px
 # so in merc 1px = (20037508.34*2) / (256 * 2**zoom)
 # hence to find the bounds of our rectangle in projected coordinates + and - half the image width worth of projected coord units
-        dx = ((20037508.34*2*(self.imgx/2)))/(256*(2 ** (zoom)))
+        dx = ((20037508.34*2*(width/2)))/(256*(2 ** (zoom)))
         minx = merc_centre.x - dx
         maxx = merc_centre.x + dx
 
@@ -174,6 +181,9 @@ class MapnikRenderer(object):
 
         #start = time.process_time()
         mapnik.render_to_file(self.m, map_uri)
+        if img_width is not None and img_height is not None:
+            self.m.resize(self.imgx, self.imgy)
+
         #print ("render took %r s" % (time.process_time()-start,))
     if False:
 # Print stats
@@ -238,8 +248,10 @@ if __name__ == "__main__":
     centrey, centrex, angle = (46.556164420769235, 15.624496195384616, 191.10020115018185)
     #render_map(centrey, centrex, angle, "map_aeqd1191_18.png")
     #render_map(46.5102,15.6956,None,"testmap.png", zoom=15,imgx=500,imgy=500)
-    m = MapnikRenderer(500,500, gpx_file="/data2/snemanje/20171016/data.gpx")
+    m = MapnikRenderer(500,500, gpx_file="/data2/snemanje/20171016/data.gpx",
+            gpx_style="gpx",
+            mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map_transparent.xml")
             #mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/file.xml")
             #mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto_gpx.xml")
-    m.render_map(46.556164420769235, 15.624496195384616, None,
+    m.render_map(46.556164420769235, 15.624496195384616, 160,
             "./test/testmap_gpx.png", overwrite=True)
