@@ -13,8 +13,7 @@ from moviepy.video.VideoClip import ImageClip
 from ChartMaker import ChartMaker
 from gpxpy import geo
 from gpxdata import GPXData
-from util import make_func
-
+from util import make_func, BreakType
 
 class GPXDataSequence(ImageSequenceClip):
     """
@@ -187,7 +186,7 @@ class GPXDataSequence(ImageSequenceClip):
                     if self.images_starts[i]<=t])
             index = find_image_index(t)
             time_start = t*self.speedup_factor
-            break_video = 0
+            break_video = BreakType.NO
             if len(self.images_starts) > (index+1):
                 next_image_start = self.images_starts[index+1]*self.speedup_factor
                 is_break = self.gpx_data.is_break(index,
@@ -199,13 +198,13 @@ class GPXDataSequence(ImageSequenceClip):
                     is_end_break = self.images_starts[index+1]-t <= self.effect_length
                     if is_start_break:
                         #print ("BREAK: Start break")
-                        break_video = 1
+                        break_video = BreakType.START
                     elif is_end_break:
                         #print ("BREAK: end break")
-                        break_video = 3
+                        break_video = BreakType.END
                     else:
                         #print ("BREAK: middle break")
-                        break_video = 2
+                        break_video = BreakType.MIDDLE
                 #print (t, "idx", index,"duration", self.durations[index]*self.speedup_factor,
                         #self.images_starts[index+1]*self.speedup_factor-t,
                         #self.images_starts[index+1]*self.speedup_factor,
@@ -230,19 +229,19 @@ class GPXDataSequence(ImageSequenceClip):
                     #k = index//3
                     #calc_index = 3*k
                     #print ("index, k, calc", index, k, calc_index)
-                    if break_video > 0:
+                    if break_video != BreakType.NO:
                         #Middle of break. Image always full screen
-                        if break_video == 2:
+                        if break_video == BreakType.MIDDLE:
                             width = self.w
                             height = self.h
-                        elif break_video == 1:
+                        elif break_video == BreakType.START:
 #Start of break. Zooms image from original size to full screen
                             xes = (0,self.effect_length)
                             f_width = make_func(xes, (clip_configs["map"]["map_w"],
                                 self.w))
                             f_height = make_func(xes, (clip_configs["map"]["map_h"],
                                 self.h))
-                        elif break_video == 3:
+                        elif break_video == BreakType.END:
 #End of a break. Zooms out image from full screen to original size
                             end_break_time = self.durations[index]
                             xes = (end_break_time-self.effect_length,end_break_time)
@@ -250,7 +249,8 @@ class GPXDataSequence(ImageSequenceClip):
                                 clip_configs["map"]["map_w"]))
                             f_height = make_func(xes, (self.h,
                                 clip_configs["map"]["map_h"]))
-                        if break_video == 1 or break_video == 3:
+                        if break_video == BreakType.START or break_video == \
+                            BreakType.END:
                             width = \
                                     int(round(f_width(t-self.images_starts[index])))
                             height = \
@@ -274,10 +274,10 @@ class GPXDataSequence(ImageSequenceClip):
                 created_clip = clip(data)
                 if created_clip is None:
                     continue
-                if break_video == 2 and key == "map":
+                if break_video == BreakType.MIDDLE and key == "map":
                     c = created_clip
                     c.set_pos(0,0)
-                elif key == "map" and break_video == 1:
+                elif key == "map" and break_video == BreakType.START:
                     c = self.data_pos[key+"_pos"](created_clip,
                             self.w, self.h)
                     x_y_start = c.pos(t)
@@ -288,7 +288,7 @@ class GPXDataSequence(ImageSequenceClip):
                     f_y = make_func(xes, (x_y_start[1], 0))
                     #print ("Should have pos:", (f_x(t-c.start), f_y(t-c.start)))
                     c = c.set_pos(lambda z: (f_x(z), f_y(z)))
-                elif key == "map" and break_video == 3:
+                elif key == "map" and break_video == BreakType.END:
                     #End of a break. Moves map from top left to original
                     #position
                     c = self.data_pos[key+"_pos"](created_clip,

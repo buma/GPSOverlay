@@ -1,3 +1,4 @@
+from enum import Enum
 
 def write_run(seq_name, file_name):
     mf = "\nmplayer mf://{} -mf fps=8 -vo xv\n"
@@ -24,3 +25,8 @@ def make_func(x_values, y_values):
     n=y1-k*x1
     return lambda x: k*x+n
 
+class BreakType(Enum):
+    NO = 0
+    START = 1
+    MIDDLE = 2
+    END = 3
