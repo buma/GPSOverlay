@@ -110,6 +110,8 @@ class GPXDataSequence(ImageSequenceClip):
         #durations = [x[0]/24 for x in self.make_time_diff(self._add_geo_using_exif,
                 #sequence)]
         self.speedup_factor = speedup_factor
+#How long in seconds is zoom out/in of map in long breaks
+        self.effect_length = 3
 #Reads image names and plays them for as far as they exists (images taken 5
         #seconds appart are shown for 5 seconds
 #Because this would be slow speedup_factor is made 24 makes images taken 3
@@ -120,11 +122,14 @@ class GPXDataSequence(ImageSequenceClip):
         fps=None
         super(GPXDataSequence, self).__init__(sequence, fps, durations, with_mask,
                 ismask, load_images)
+#Finds breaks in image sequences (Break is when we have GPS information but no
+        #images at that time
+#FIXME: find breaks with GPS and images not just durations
+        self.have_any_breaks = any((duration > (self.effect_length*2+2) for duration in
+            self.durations))
         self.gpx_data = GPXData(sequence, gpx_file=gpx_file)
         self.maps_cache = "./.map_cacheParenzana"
         self.chart_data = {}
-#How long in seconds is zoom out/in of map in long breaks
-        self.effect_length = 3
 
         """Clip argument is anything not starting with _
         and not class"""
@@ -186,7 +191,7 @@ class GPXDataSequence(ImageSequenceClip):
                     if self.images_starts[i]<=t])
             index = find_image_index(t)
             time_start = t*self.speedup_factor
-            break_video = self.find_break(index, t)
+            break_video, end_break_time = self.find_break(index, t)
             gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
             gps_info = gps_info._asdict()
             #print (gps_info, self.data_clips)
@@ -219,7 +224,6 @@ class GPXDataSequence(ImageSequenceClip):
                                 self.h))
                         elif break_video == BreakType.END:
 #End of a break. Zooms out image from full screen to original size
-                            end_break_time = self.durations[index]
                             xes = (end_break_time-self.effect_length,end_break_time)
                             f_width = make_func(xes, (self.w,
                                 clip_configs["map"]["map_w"]))
@@ -271,7 +275,6 @@ class GPXDataSequence(ImageSequenceClip):
                             self.w, self.h)
                     x_y_end = c.pos(t)
                     #print ("Coords:", x_y_end)
-                    end_break_time = self.durations[index]
                     xes = (end_break_time-self.effect_length,end_break_time)
                     #print ("Xes:", xes)
                     f_x = make_func(xes, (0, x_y_end[0]))
@@ -298,6 +301,8 @@ class GPXDataSequence(ImageSequenceClip):
         and which part of a break. Start, Middle or End
         """
         break_video = BreakType.NO
+        if not self.have_any_breaks:
+            return break_video, None
         if len(self.images_starts) > (index+1):
             next_image_start = self.images_starts[index+1]*self.speedup_factor
             is_break = self.gpx_data.is_break(index,
@@ -322,7 +327,7 @@ class GPXDataSequence(ImageSequenceClip):
                     #self.images_starts[index]*self.speedup_factor,
                     #t-self.images_starts[index],
                     #self.images_starts[index+1]-t)
-        return break_video
+        return break_video, self.durations[index]
 
     @staticmethod
     def make_name(gps_info, width=None, height=None):
