@@ -17,6 +17,7 @@ class GPXData(object):
         if sequence is None and gpx_file is None:
             raise Exception("Sequence and gpx_file is none. "+
                     "One of them or both has to be set")
+        self.time_offset = time_offset
         if gpx_file is not None:
             # read gpx file to get track locations
             self.gpx = get_lat_lon_time_from_gpx(gpx_file)
@@ -75,7 +76,7 @@ class GPXData(object):
         """Gets geo information based on time from start"""
 #FIXME: should this be global offset_time
         if index is None:
-            offset_time = 0
+            offset_time = self.time_offset
         else:
             #TODO: make it work if offsets differ
             offset_time = self.gpx_data[index].offset

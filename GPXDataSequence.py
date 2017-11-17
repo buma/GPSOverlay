@@ -90,27 +90,37 @@ class GPXDataSequence(VideoClip):
                 speedup_factor, data_clips, clip_configs)
 
     def __init__(self, clip, gpx_file=None, time_offset=0,
-            interval=0, speedup_factor=1, data_clips=None, clip_configs=None):
+            interval=0, speedup_factor=1, clip_start_time=None, data_clips=None, clip_configs=None):
 
 #How long in seconds is zoom out/in of map in long breaks
         self.effect_length = 3
         self.clip = clip
+        duration = clip.duration
 #Finds breaks in image sequences (Break is when we have GPS information but no
         #images at that time
 #FIXME: find breaks with GPS and images not just durations
         if isinstance(clip, ImageSequenceClip):
             self.have_any_breaks = any((duration > (self.effect_length*2+2) for duration in
                 self.clip.durations))
-            self.gpx_data = GPXData(sequence=self.clip.sequence, gpx_file=gpx_file)
+            self.gpx_data = GPXData(sequence=self.clip.sequence,
+                    gpx_file=gpx_file)
             self.durations = self.clip.durations
             self.images_starts = self.clip.images_starts
             self.find_image_index = lambda t: max([i for i in range(len(self.clip.sequence))
                     if self.clip.images_starts[i]<=t])
         else:
+            if speedup_factor != 1:
+                self.clip.old_make_frame = self.clip.make_frame
+                self.clip.make_frame = lambda t: \
+                    self.clip.old_make_frame(t*self.speedup_factor)
+                duration = duration/speedup_factor
             self.have_any_breaks = False
-            self.gpx_data = GPXData(gpx_file=gpx_file)
+            self.gpx_data = GPXData(gpx_file=gpx_file,
+                    gpx_start_time=clip_start_time,
+                    time_offset=time_offset)
             self.find_image_index = lambda t: None
-        VideoClip.__init__(self, ismask=clip.ismask, duration=clip.duration)
+        VideoClip.__init__(self, ismask=clip.ismask,
+                duration=duration)
 
         self.size = clip.size
         self.clip_configs = clip_configs

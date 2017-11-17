@@ -1,5 +1,7 @@
 from enum import Enum
 
+from moviepy.video.VideoClip import TextClip
+
 def write_run(seq_name, file_name):
     mf = "\nmplayer mf://{} -mf fps=8 -vo xv\n"
     with open(file_name, "wt") as out_seq_file:
@@ -30,3 +32,14 @@ class BreakType(Enum):
     START = 1
     MIDDLE = 2
     END = 3
+
+def make_speed_clip(speed):
+    large_font=40
+    font="Bitstream-Vera-Sans-Mono-Bold"
+    if speed*3.6 < 1:
+        txt = "STOPPED"
+    else:
+        txt = "%2.2f km/h" % (speed*3.6)
+    return TextClip(txt,
+        fontsize=large_font, font=font, color='white',
+        stroke_color='black')
