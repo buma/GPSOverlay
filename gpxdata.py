@@ -11,24 +11,41 @@ GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
 'elevation', 'speed', 'heart', 'datetime', 'map', 'slope', 'offset'])
 
 class GPXData(object):
-    def __init__(self, sequence, gpx_file=None, time_offset=0, interval=0):
+    def __init__(self, sequence=None, gpx_file=None, time_offset=0, interval=0,
+            gpx_start_time=None):
         self.gpx_data = []
+        if sequence is None and gpx_file is None:
+            raise Exception("Sequence and gpx_file is none. "+
+                    "One of them or both has to be set")
+        if gpx_file is not None:
+            # read gpx file to get track locations
+            self.gpx = get_lat_lon_time_from_gpx(gpx_file)
+        else:
+            self.gpx = None
+        if sequence is not None:
 # Estimate capture time with sub-second precision
-        image_creation_times = self._estimate_sub_second_time(sequence, interval)
-        if not image_creation_times:
-            sys.exit(1)
-        # read gpx file to get track locations
-        self.gpx = get_lat_lon_time_from_gpx(gpx_file)
-        #For each image in sequence based on imagecreation time and gpx file time offset
-        # find closest saved track_point in gpx file and interpolate lat,lon, elevation, speed etc
-        #So that self.gpx_data has same number of items as input self.sequence
-        #And each item is GPSData with information at this point in time as image was creatd
-        for filepath, file_creation_time in zip(sequence, image_creation_times):
-            if self.gpx_data:
-                time_offset = self.gpx_data[-1].offset
-            self._add_exif_using_timestamp(filepath, file_creation_time, self.gpx,
-                    time_offset, 0)
-        self.gpx_start_time = self.gpx_data[0].datetime
+            image_creation_times = self._estimate_sub_second_time(sequence, interval)
+            if not image_creation_times:
+                sys.exit(1)
+            #For each image in sequence based on imagecreation time and gpx file time offset
+            # find closest saved track_point in gpx file and interpolate lat,lon, elevation, speed etc
+            #So that self.gpx_data has same number of items as input self.sequence
+            #And each item is GPSData with information at this point in time as image was creatd
+            for filepath, file_creation_time in zip(sequence, image_creation_times):
+                if self.gpx_data:
+                    time_offset = self.gpx_data[-1].offset
+                self._add_exif_using_timestamp(filepath, file_creation_time, self.gpx,
+                        time_offset, 0)
+            if gpx_file is not None:
+                assert (len(sequence)==len(self.gpx_data)) 
+        if gpx_start_time is not None:
+            self.gpx_start_time = gpx_start_time
+        elif self.gpx_data:
+            #FIXME: what happens with that if we don't have sequence
+            self.gpx_start_time = self.gpx_data[0].datetime
+        else:
+            raise Exception("No gpx_start_time this needs to be set" +
+                    " from argument or from sequence")
 
         self.index_for = {
                 'elevation':3,
@@ -56,8 +73,12 @@ class GPXData(object):
 
     def get_geo_at(self, index, seconds_from_start, return_index=False):
         """Gets geo information based on time from start"""
-        #TODO: make it work if offsets differ
-        offset_time = self.gpx_data[index].offset
+#FIXME: should this be global offset_time
+        if index is None:
+            offset_time = 0
+        else:
+            #TODO: make it work if offsets differ
+            offset_time = self.gpx_data[index].offset
         if offset_time is None:
             offset_time = 0
         offset_bearing = 0
@@ -115,19 +136,26 @@ class GPXData(object):
             lat_exif = round(geo_exif.lat, 5)
             lon_exif = round(geo_exif.lon, 5)
             found_diff = False
-            for offset_time in make_offsets(given_offset_time,50):
-                # subtract offset in s beween gpx time and exif time
+#No gpx file given. We just save to points location of images
+            if points is not None:
+                for offset_time in make_offsets(given_offset_time,50):
+                    # subtract offset in s beween gpx time and exif time
+                    t = file_creation_time - datetime.timedelta(seconds=offset_time)
+                    lat, lon, bearing, elevation, speed, heart, _ = interpolate_lat_lon(points, t)
+                    lat_round = round(lat, 5)
+                    lon_round = round(lon, 5)
+                    if lat_round-lat_exif == 0 and lon_round-lon_exif == 0:
+                        found_diff = True
+                        break
+                if not found_diff:
+                    print ("No offset diff found for {}".format(filename))
+                    offset_time = self.gpx_data[-1].offset
+                    #return
+            else:
+                offset_time = given_offset_time
+                speed = None
+                heart = None
                 t = file_creation_time - datetime.timedelta(seconds=offset_time)
-                lat, lon, bearing, elevation, speed, heart, _ = interpolate_lat_lon(points, t)
-                lat_round = round(lat, 5)
-                lon_round = round(lon, 5)
-                if lat_round-lat_exif == 0 and lon_round-lon_exif == 0:
-                    found_diff = True
-                    break
-            if not found_diff:
-                print ("No offset diff found for {}".format(filename))
-                offset_time = self.gpx_data[-1].offset
-                #return
 
             corrected_bearing = (geo_exif.bearing + offset_bearing) % 360
             self.gpx_data.append(GPSData(geo_exif.lat, geo_exif.lon,
