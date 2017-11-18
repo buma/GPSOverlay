@@ -1,6 +1,10 @@
 from enum import Enum
+import collections
 
 from moviepy.video.VideoClip import TextClip
+
+GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
+'elevation', 'speed', 'heart', 'datetime', 'map', 'slope', 'offset'])
 
 def write_run(seq_name, file_name):
     mf = "\nmplayer mf://{} -mf fps=8 -vo xv\n"

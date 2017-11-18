@@ -4,9 +4,6 @@ import sys
 import collections
 import time
 
-GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
-'elevation', 'speed', 'heart', 'datetime', 'map', 'slope'])
-
 #from moviepy.video.VideoClip import VideoClip
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 from moviepy.video.VideoClip import ImageClip, VideoClip
@@ -14,7 +11,7 @@ from moviepy.video.VideoClip import ImageClip, VideoClip
 from ChartMaker import ChartMaker
 from gpxpy import geo
 from gpxdata import GPXData
-from util import make_func, BreakType
+from util import make_func, BreakType, GPSData
 from ImageSequenceClipDelay import ImageSequenceClipDelay
 
 class GPXDataSequence(VideoClip):

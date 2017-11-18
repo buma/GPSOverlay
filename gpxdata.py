@@ -6,9 +6,7 @@ from lib.geo import interpolate_lat_lon, decimal_to_dms
 from gpxpy import geo
 import exifread
 from lib.exif import EXIF
-from util import make_offsets
-GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
-'elevation', 'speed', 'heart', 'datetime', 'map', 'slope', 'offset'])
+from util import make_offsets, GPSData
 
 class GPXData(object):
     def __init__(self, sequence=None, gpx_file=None, time_offset=0, interval=0,
