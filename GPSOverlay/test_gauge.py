@@ -1,4 +1,4 @@
-from GaugeClipMaker import GaugeClipMaker
+from .GaugeClipMaker import GaugeClipMaker
 
 duration=5 #seconds
 fps=25

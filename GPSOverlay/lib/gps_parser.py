@@ -1,12 +1,16 @@
 #!/usr/bin/python
 
+#From https://github.com/mapillary/mapillary_tools
+#Commit aa122c9671ab26f1fc9026267e069a1a5234dd67
+
+#print is a function now
 from __future__ import print_function
 
 import sys
 import os
 import datetime
 import time
-from lib.geo import gpgga_to_dms, utc_to_localtime
+from .geo import gpgga_to_dms, utc_to_localtime
 
 try:
     import gpxpy
@@ -18,7 +22,7 @@ except ImportError as error:
 Methods for parsing gps data from various file format e.g. GPX, NMEA, SRT.
 '''
 
-
+#Function now returns also speed and heart rate
 def get_lat_lon_time_from_gpx(gpx_file, local_time=True):
     '''
     Read location and time stamps from a track in a GPX file.
@@ -77,6 +81,14 @@ def get_lat_lon_time_from_nmea(nmea_file, local_time=True):
         lines = f.readlines()
         lines = [l.rstrip("\n\r") for l in lines]
 
+    # Get initial date
+    for l in lines:
+        if "GPRMC" in l:
+            data = pynmea2.parse(l)
+            date = data.datetime.date()
+            break
+
+    # Parse GPS trace
     points = []
     for l in lines:
         if "GPRMC" in l:

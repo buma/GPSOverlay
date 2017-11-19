@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+#From https://github.com/mapillary/mapillary_tools
+#Commit aa122c9671ab26f1fc9026267e069a1a5234dd67
+
 import datetime
 import math
 
@@ -147,6 +150,8 @@ def normalize_bearing(bearing, check_hex=False):
     bearing %= 360
     return bearing
 
+#Function now also returns index of point and interpolates
+#Speed and heartrate
 def interpolate_lat_lon(points, t, max_dt=1):
     '''
     Return interpolated lat, lon and compass bearing for time t.

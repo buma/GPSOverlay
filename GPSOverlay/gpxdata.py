@@ -1,12 +1,12 @@
 import datetime
 import os
 import collections
-from lib.gps_parser import get_lat_lon_time_from_gpx
-from lib.geo import interpolate_lat_lon, decimal_to_dms
+from .lib.gps_parser import get_lat_lon_time_from_gpx
+from .lib.geo import interpolate_lat_lon, decimal_to_dms
 from gpxpy import geo
 import exifread
-from lib.exif import EXIF
-from util import make_offsets, GPSData
+from .lib.exif import EXIF
+from .util import make_offsets, GPSData
 
 class GPXData(object):
     def __init__(self, sequence=None, gpx_file=None, time_offset=0, interval=0,
