@@ -1,7 +1,6 @@
 import glob
 import time
 import os
-import concurrent.futures
 import multiprocessing
 from tqdm import tqdm
 
@@ -17,19 +16,19 @@ def get_frames(filematch):
     return sort
 map_w = 250
 map_h = 250
-map_zoom = 18.5
-gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx"
+map_zoom = 18
+gpx_file="/data2/snemanje/20171029/data.gpx"
 #map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"
 map_mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto_gpx.xml"
 #map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map.xml"
 #map_mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map_transparent.xml"
-maps_cache = "./.map_cache6"
+maps_cache = "./.map_cacheParenzana1"
 fps=8
-frames = get_frames("/data2/snemanje/miklavz/original/1/changed/*.JPG")
+frames = get_frames("/data2/snemanje/20171029_1/resized/*.JPG")
 
-gpx_seq = GPXDataSequence(frames[4:], fps, with_mask=False,
-        gpx_file="/data2/snemanje/miklavz/2017-04-22_15-38-20.gpx",
-       time_offset=944, map_w=map_w, map_h=map_h,
+gpx_seq = GPXDataSequence(frames[1:], fps, with_mask=False,
+        gpx_file=gpx_file,
+       time_offset=-39, map_w=map_w, map_h=map_h,
        zoom=map_zoom)
 
 
