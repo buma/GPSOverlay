@@ -180,7 +180,7 @@ class GPXDataSequence(VideoClip):
 
     #@profile
     def make_frame(self, t):
-        start = time.time()
+        #start = time.time()
         f = self.clip.make_frame(t)
         index = self.find_image_index(t)
         time_start = t*self.speedup_factor
@@ -190,7 +190,7 @@ class GPXDataSequence(VideoClip):
         #print (gps_info, self.data_clips)
 # For each wanted datafield make clip and set position
         for key, clip in self.data_clips.items():
-            start_key = time.time()
+            #start_key = time.time()
             if key.endswith("_chart"):
                 nkey = key.replace("_chart", "")
                 value = gps_info[nkey]
@@ -284,10 +284,10 @@ class GPXDataSequence(VideoClip):
                 #print ("Blit on:", t-c.start, c.end)
             #Replacing f with c if the sizes are the same doesn't speed up
             #the code
-            print ("key %s %s, Rendering took %r s" % (key,
-                break_video.name, time.time()-start_key,))
+            #print ("key %s %s, Rendering took %r s" % (key,
+                #break_video.name, time.time()-start_key,))
             f = c.blit_on(f, t)
-        print ("%f, %s, Rendering took %r s" % (t, break_video.name, time.time()-start,))
+        #print ("%f, %s, Rendering took %r s" % (t, break_video.name, time.time()-start,))
         return f
 
 
