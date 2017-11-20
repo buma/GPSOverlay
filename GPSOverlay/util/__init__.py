@@ -1,8 +1,6 @@
 from enum import Enum
 import collections
 
-from moviepy.video.VideoClip import TextClip
-
 GPSData = collections.namedtuple('GPSData', ['lat', 'lon', 'bearing',
 'elevation', 'speed', 'heart', 'datetime', 'map', 'slope', 'offset'])
 
@@ -36,14 +34,3 @@ class BreakType(Enum):
     START = 1
     MIDDLE = 2
     END = 3
-
-def make_speed_clip(speed):
-    large_font=40
-    font="Bitstream-Vera-Sans-Mono-Bold"
-    if speed*3.6 < 1:
-        txt = "STOPPED"
-    else:
-        txt = "%2.2f km/h" % (speed*3.6)
-    return TextClip(txt,
-        fontsize=large_font, font=font, color='white',
-        stroke_color='black')
