@@ -48,7 +48,7 @@ def get_lat_lon_time_from_gpx(gpx_file, local_time=True):
                     speed = 0
                     hr = 0
                     try:
-                        hr = int(point.extensions['gpxtpx:hr'])
+                        hr = int(point.extensions['hr'])
                     except KeyError as k:
                         pass
                     if prev_point is not None:
