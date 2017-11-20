@@ -2,8 +2,6 @@ import datetime
 from moviepy.video.VideoClip import TextClip, ImageClip, ColorClip, VideoClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.tools.drawing import circle
-from .MapnikRenderer import MapnikRenderer
-from .ChartMaker import ChartMaker
 from .util.Position import Position
 from .util.ConfigItem import ConfigItem
 
@@ -115,6 +113,7 @@ class DefaultConfig(object):
             map_zoom=16, map_mapfile=None, gpx_style=None,
             gpx_file=True, func=None, position=None
             ):
+        from .MapnikRenderer import MapnikRenderer
         map_config = {
                 "class": MapnikRenderer, #Calls init on this class with given
                 #parameters
