@@ -44,17 +44,18 @@ class DefaultConfig(object):
 
         Key is config key (elevation, speed, etc.), value is util.ConfigItem
 
-        The only difference being map is always returned first (if it exists)
-        This is because map needs to be first when composing on breaks.
+        Parameters
+        ---------
+        need_config : bool
+            If true returns only configs that need initialization (Have class
+            in config)
+
         """
-        if "map" in self.config:
-            yield "map", self.config["map"]
         for key, value in self.config.items():
-            if key != "map":
-                if need_config and value.need_init():
-                    yield key, value
-                elif not need_config:
-                    yield key, value
+            if need_config and value.need_init():
+                yield key, value
+            elif not need_config:
+                yield key, value
 
     def make_items(self):
         """Returns config items to be used in make frame
