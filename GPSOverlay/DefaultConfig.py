@@ -1,7 +1,7 @@
 import datetime
 from moviepy.video.VideoClip import TextClip, ImageClip, ColorClip, VideoClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
-from moviepy.video.tools.drawing import circle
+from moviepy.video.tools.drawing import circle, color_gradient
 from .util.Position import Position
 from .util.ConfigItem import ConfigItem
 
@@ -126,7 +126,7 @@ class DefaultConfig(object):
                 #class is initialized
                 }
         self.config["map"] = ConfigItem(
-                func= self._if_set(func, self.make_map),
+                func= self._if_set(func, self.make_map_clip),
                 # center
                 #'map_pos': lambda t, W,H:
                 #t.set_pos((W/2-t.w-self.padding.right,
@@ -182,9 +182,19 @@ class DefaultConfig(object):
 
 
 
-    def make_map(self, map_clip):
-        #map_clip = map_clip.set_mask(map_mask_clip)
-        #map_clip = map_clip.set_opacity(0.7)
+    def make_transparent_map_clip(self, map_clip):
+        map_w = map_clip.w
+        map_h = map_clip.h
+#Makes radial mask which is used to blur map as a circle with transparent
+#background
+        map_mask = color_gradient((map_w, map_h), (map_w/2,map_h/2),
+                (map_h/2,0), offset=0.9, shape='radial', col1=1, col2=0.0)
+        map_mask_clip = ImageClip(map_mask, ismask=True)
+        map_clip = map_clip.set_mask(map_mask_clip)
+        map_clip = map_clip.set_opacity(0.7)
+        return self.make_map_clip(map_clip)
+
+    def make_map_clip(self, map_clip):
         #We composite it on map image to get current location point
 #TODO: make circle once and just compose it in currently it is very wasteful
         map_w = map_clip.w
