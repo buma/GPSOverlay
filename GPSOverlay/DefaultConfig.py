@@ -10,7 +10,7 @@ class DefaultConfig(object):
 
     def __init__(self, default_font="Bitstream-Vera-Sans-Mono-Bold",
             normal_font_size=30, large_font_size=40,
-            padding=Position._make([40,30,0]),
+            padding=Position.make([40,30,0]),
             margin=10):
         self.default_font = default_font
         self.normal_font_size = normal_font_size

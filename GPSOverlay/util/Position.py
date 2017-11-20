@@ -16,7 +16,7 @@ class Position(tuple):
         return _tuple.__new__(_cls, (top, right, bottom, left))
 
     @classmethod
-    def _make(cls, in_iterable, new=tuple.__new__, len=len):
+    def make(cls, in_iterable, new=tuple.__new__, len=len):
         """Make a new Position object from a sequence or iterable
 
         Parameters
