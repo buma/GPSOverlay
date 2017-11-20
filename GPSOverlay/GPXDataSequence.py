@@ -146,26 +146,12 @@ class GPXDataSequence(VideoClip):
         gps_info = gps_info._asdict()
         #print (gps_info, self.data_clips)
 # For each wanted datafield make clip and set position
-        for key, key_config in self.config.config_items():
-            if key_config.object is not None:
-                print ("{} has object no idea what to do:".format(key))
+        for key, chart,  key_config in self.config.make_items():
+            c = key_config.get_clip(key, chart,  gps_info, gpx_index, self.w,
+                    self.h)
+            if c is None:
                 continue
-            data = gps_info[key]
-
-            if data is None:
-                continue
-            created_clip = key_config.func(data)
-            if created_clip is None:
-                continue
-            c = key_config.position(created_clip,
-                        self.w, self.h)
-            #if key == "map":
-                #print (c.pos(t))
-                #c.set_pos(lambda z: print("time:", z))
-                #print ("Blit on:", t-c.start, c.end)
             print (key, "==", c.pos(t), c.w, c.h)
-            #Replacing f with c if the sizes are the same doesn't speed up
-            #the code
             #print ("key %s %s, Rendering took %r s" % (key,
                 #break_video.name, time.time()-start_key,))
             f = c.blit_on(f, t)

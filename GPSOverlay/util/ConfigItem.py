@@ -80,6 +80,70 @@ class ConfigItem(object):
             return self.sample_value(clip, self.config)
         return self.sample_value
 
+    def get_clip(self, key, is_chart, gps_info, gpx_index, W, H):
+        """Fully creates clip
+
+        Gets data( self.get_data), runs function (self.func) and sets position
+        (self.position)
+
+        Parameters
+        ---------
+        key : str
+            Config key (elvation, speed, etc.) What do we want
+        is_chart : bool
+            True if we want to draw chart from this or not
+        gps_info : util.GPSData
+            Data to draw
+        gpx_index : int
+            Index in GPX points
+        W : int
+            Width of full picture
+        H : int
+            Height of full picture
+
+        Returns
+        ------
+        moviepy.Clip 
+            Clip generated from data set on correct position or None if clip
+            couldn't be created
+        """
+        name = ""
+        if is_chart:
+            name = "chart_"
+        data = self.get_data(key, is_chart, gps_info, gpx_index)
+        if data is None:
+            return None
+        created_clip = getattr(self, name+"func")(data)
+        if created_clip is None:
+            return None
+        c = getattr(self, name+"position")(created_clip, W, H)
+        return c
+
+
+
+    def get_data(self, key, is_chart, gps_info, gpx_index):
+        """Gets data for this key
+
+        Parameters
+        ---------
+        key : str
+            Config key (elvation, speed, etc.) What do we want
+        is_chart : bool
+            True if we want to draw chart from this or not
+        gps_info : util.GPSData
+            Data to draw
+        gpx_index : int
+            Index in GPX points
+
+        Returns
+        ------
+            gps_info[key] if is_chart is False. chart_object.make_chart_at if
+            it is True
+        """
+        if is_chart:
+            return self.chart_object.make_chart_at(gpx_index)
+        return gps_info[key]
+
     @staticmethod
     def _is_argument(argument):
         """Clip argument is anything not starting with _

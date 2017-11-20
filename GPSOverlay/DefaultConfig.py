@@ -56,6 +56,33 @@ class DefaultConfig(object):
                 elif not need_config:
                     yield key, value
 
+    def make_items(self):
+        """Returns config items to be used in make frame
+
+        Key is config key (elevation, speed, etc.), second value is boolean
+        True if value has chart and false otherwise value is util.ConfigItem
+
+        Map is always returned first (if it exists)
+        This is because map needs to be first when composing on breaks.
+        Each ConfigItem that has chart is returned twice. First with second
+        value False then with second value True.
+
+        Yields
+        -----
+        str, bool, util.ConfigItem
+            First item is config key, second shows if we want to show Chart and
+            is True only if chart_object actually exists. And third is
+            ConfigItem
+
+        """
+        if "map" in self.config:
+            yield "map", False, self.config["map"]
+        for key, value in self.config.items():
+            if key != "map":
+                yield key, False, value
+            if value.chart_object is not None:
+                yield key, True, value
+
 
     def make_default_config(self):
         self.make_datetime_config()
