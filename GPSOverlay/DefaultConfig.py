@@ -39,6 +39,24 @@ class DefaultConfig(object):
         self.margin = margin
         self.config = {}
 
+    def config_items(self, need_config=False):
+        """Returns config items same format as dict.items()
+
+        Key is config key (elevation, speed, etc.), value is util.ConfigItem
+
+        The only difference being map is always returned first (if it exists)
+        This is because map needs to be first when composing on breaks.
+        """
+        if "map" in self.config:
+            yield "map", self.config["map"]
+        for key, value in self.config.items():
+            if key != "map":
+                if need_config and value.need_init():
+                    yield key, value
+                elif not need_config:
+                    yield key, value
+
+
     def make_default_config(self):
         self.make_datetime_config()
         self.make_elevation_config()
@@ -167,7 +185,7 @@ class DefaultConfig(object):
                 "map_zoom": map_zoom,
                 "mapfile": map_mapfile,
                 "gpx_style": gpx_style,
-                "_gpx_file":gpx_file, #If true path to gpx file will be added when
+                "gpx_file":"__gpx_file", #If true path to gpx file will be added when
                 #class is initialized
                 }
         self.config["map"] = ConfigItem(
@@ -192,7 +210,11 @@ class DefaultConfig(object):
             ci = self.config[key]
             ci.chart_position = position
             ci.chart_func = func
-            ci.config = config
+            ci.chart_config = config
+        if "wanted_value" not in self.config[key].chart_config:
+            self.config[key].chart_config["wanted_value"] = key
+        if "gpx_data" not in self.config[key].chart_config:
+            self.config[key].chart_config["gpx_data"] = "__gpx_data"
 
     def make_demo_clip(self, image=None):
         def make_frame(t):

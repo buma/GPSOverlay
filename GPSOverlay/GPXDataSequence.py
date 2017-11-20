@@ -79,15 +79,15 @@ class GPXDataSequence(VideoClip):
     @classmethod
     def from_sequence_with_breaks(cls, sequence, fps=None, durations=None, with_mask=True,
             ismask=False, load_images=False, gpx_file=None, time_offset=0,
-            interval=0, speedup_factor=24, data_clips=None, clip_configs=None):
+            interval=0, speedup_factor=24, config=None):
 
         clip = ImageSequenceClipDelay(sequence, durations, with_mask, ismask,
                 load_images, speedup_factor)
         return cls(clip, gpx_file, time_offset, interval,
-                speedup_factor, data_clips, clip_configs)
+                speedup_factor, None, config)
 
     def __init__(self, clip, gpx_file=None, time_offset=0,
-            interval=0, speedup_factor=1, clip_start_time=None, data_clips=None, clip_configs=None):
+            interval=0, speedup_factor=1, clip_start_time=None, config=None):
 
 #How long in seconds is zoom out/in of map in long breaks
         self.effect_length = 3
@@ -120,66 +120,61 @@ class GPXDataSequence(VideoClip):
                 duration=duration)
 
         self.size = clip.size
-        self.clip_configs = clip_configs
 
         #TODO: check if both this exists in clips
-        self.fps = clip.fps
+        #self.fps = clip.fps
         self.maps_cache = "./.map_cacheParenzana"
         self.chart_data = {}
         self.speedup_factor = speedup_factor
+        self.gpx_file = gpx_file
 
-        """Clip argument is anything not starting with _
-        and not class"""
-        def is_argument(argument):
-            if argument.startswith("_"):
-                return False
-            if argument == "class":
-                return False
-            return True
 
-        if data_clips is not None:
-            self.data_pos = {}
-            self.data_clips = {}
-            #print ("Keys:", data_clips.keys())
-# Save in self._data_clips only keys that are in GPSData._fields and have _pos
-# Save in self._data_pos only keys with pos that are in GPSData._fields
-#FIXME: make map first key so when clip is composed it doesn't overwrite the
-            #others
-            for key in reversed(GPSData._fields):
-                if key in data_clips:
-                    keypos = key+"_pos"
-                    if keypos in data_clips:
-                        self.data_pos[keypos] = data_clips[keypos]
-                        self.data_clips[key] = data_clips[key]
-                        print ("Added key:", key)
-                        if key in clip_configs:
-                            clip_config = clip_configs[key]
-                            args = {k:v for k,v in clip_config.items() if \
-                                   is_argument(k) }
-                            if "_gpx_file" in clip_config:
-                               if clip_config.get("_gpx_file", False):
-                                   args["gpx_file"] = gpx_file
-#FIXME: this needs to be map of clips with some kind of API
-                            self.mapnik_renderer = clip_config["class"](**args) 
-                    else:
-                        print(keypos+" is missing in data clips, but "+key+
-                                " does exist!")
-                    if key in self.chart_clips:
-                        key_chart = key+"_chart"
-                        if key_chart in data_clips:
-                            key_chart_pos = key_chart+"_pos"
-                            if key_chart_pos in data_clips:
-                                self.data_pos[key_chart_pos] = data_clips[key_chart_pos]
-                                self.data_clips[key_chart] = data_clips[key_chart]
-                                print ("Added key:", key_chart)
-                            else:
-                                print (key_chart_pos+" is missing in data clips, but " + key_chart + " does exists!")
-            print(self.data_clips)
-            #break
-                #"Size of input sequence and GPS is not the same")
+        if config is not None:
+            self.config = config
+
+            for key, key_config in config.config_items(need_config=True):
+                print (key, "needs config")
+                key_config.init(vars(self))
+
+    def make_frame(self, t):
+        #start = time.time()
+        f = self.clip.make_frame(t)
+        index = self.find_image_index(t)
+        time_start = t*self.speedup_factor
+        break_video, end_break_time = self.find_break(index, t)
+        gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
+        gps_info = gps_info._asdict()
+        #print (gps_info, self.data_clips)
+# For each wanted datafield make clip and set position
+        for key, key_config in self.config.config_items():
+            if key_config.object is not None:
+                print ("{} has object no idea what to do:".format(key))
+                continue
+            data = gps_info[key]
+
+            if data is None:
+                continue
+            created_clip = key_config.func(data)
+            if created_clip is None:
+                continue
+            c = key_config.position(created_clip,
+                        self.w, self.h)
+            #if key == "map":
+                #print (c.pos(t))
+                #c.set_pos(lambda z: print("time:", z))
+                #print ("Blit on:", t-c.start, c.end)
+            print (key, "==", c.pos(t), c.w, c.h)
+            #Replacing f with c if the sizes are the same doesn't speed up
+            #the code
+            #print ("key %s %s, Rendering took %r s" % (key,
+                #break_video.name, time.time()-start_key,))
+            f = c.blit_on(f, t)
+        #print ("%f, %s, Rendering took %r s" % (t, break_video.name, time.time()-start,))
+        return f
+
 
     #@profile
-    def make_frame(self, t):
+    def make_OLD_frame(self, t):
         #start = time.time()
         f = self.clip.make_frame(t)
         index = self.find_image_index(t)
@@ -282,6 +277,7 @@ class GPXDataSequence(VideoClip):
                 #print (c.pos(t))
                 #c.set_pos(lambda z: print("time:", z))
                 #print ("Blit on:", t-c.start, c.end)
+            print (key, "==", c.pos(t), c.w, c.h)
             #Replacing f with c if the sizes are the same doesn't speed up
             #the code
             #print ("key %s %s, Rendering took %r s" % (key,

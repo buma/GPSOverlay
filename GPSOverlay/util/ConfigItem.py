@@ -53,13 +53,17 @@ class ConfigItem(object):
 
     """
     def __init__(self, func=None, position=None, chart_func=None,
-            chart_position=None, config=None, sample_value=None):
+            chart_position=None, config=None, chart_config=None,
+            sample_value=None):
         self.func = func
         self.position = position
         self.chart_func = chart_func
         self.chart_position = chart_position
         self.config = config
+        self.chart_config = chart_config
         self.sample_value = sample_value
+        self.object = None
+        self.chart_object = None
 
     def sample(self, clip):
         """Returns input value like it was read from GPX
@@ -75,6 +79,107 @@ class ConfigItem(object):
         if callable(self.sample_value):
             return self.sample_value(clip, self.config)
         return self.sample_value
+
+    @staticmethod
+    def _is_argument(argument):
+        """Clip argument is anything not starting with _
+        and not class"""
+        if argument.startswith("_"):
+            return False
+        if argument == "class":
+            return False
+        return True
+
+    @staticmethod
+    def _magic_value(key, value, object_vars):
+        """Converts config values
+
+        If config value starts with `__` it is transformed to the value of this
+        variable in GPXDataSequence. For example `__gpx_file` is transformed to
+        `/home/user/gpx.gpx` if that is the input of GPXDataSequence.
+
+        If key contains size and value is tuple `w` will be converted to picture
+        width and `h` to picture height.
+
+        All the other values are unchanged
+
+        Parameters
+        ---------
+        key
+            Config key
+        value
+            Config value
+        object_vars : dict
+            Variables and its values in GPXDataSequence
+        """
+        if isinstance(value, str) and value.startswith("__"):
+            strip_value = value.lstrip("_")
+            if strip_value in object_vars:
+                return object_vars[strip_value]
+        elif "size" in key:
+            if isinstance(value, tuple):
+                out_tuple = []
+                found_string = False
+                for val in value:
+                    if isinstance(val, str):
+                        low_val = val.lower()
+                        found_string = True
+                        if low_val  == "w":
+                            out_tuple.append(object_vars["size"][0])
+                        elif low_val == "h":
+                            out_tuple.append(object_vars["size"][1])
+                        else:
+                            raise Exception("Wrong text size: Supported " +
+                                    "values  are integers and 'w', 'h' "+
+                                    "Given values are {} in {}".format(value,
+                                        key))
+                    else:
+                        out_tuple.append(val)
+                if found_string:
+                    return tuple(out_tuple)
+        else:
+            return value
+
+    def need_init(self):
+        """Checks if configs needs initialization
+
+        Configs need initialization if class exists in config or chart_config.
+
+        This is needed for Gauges, charts and map creation
+
+        Returns
+        ------
+        bool
+            True if initialization is needed
+        """
+        class_init = False
+        if self.config is not None:
+            class_init = "class" in self.config
+        if self.chart_config is not None:
+            return class_init or "class" in self.chart_config
+        return False
+
+
+    def init(self, object_vars):
+        """Initializes configs
+
+        If config or chart_config contains class with Classname. This class is
+        initialized here with needed arguments and object is saved in object or
+        chart_object
+        """
+        def get_args(config, object_vars):
+            return {k:self._magic_value(k, v, object_vars) \
+                    for k,v in config.items() if self._is_argument(k) }
+
+        def init_class(config):
+            if config is not None and "class" in config:
+                args = get_args(config, object_vars)
+                print ("CONF:", config)
+                print ("ARGS:", args)
+                return config["class"](**args)
+        self.object = init_class(self.config)
+        self.chart_object = init_class(self.chart_config)
+
 
     def __repr__(self):
         s=("{} set: {}".format(key, value!=None) for key, value in
