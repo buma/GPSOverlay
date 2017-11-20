@@ -7,6 +7,26 @@ from .util.ConfigItem import ConfigItem
 
 
 class DefaultConfig(object):
+    """Initializes config with default options
+
+    Parameters
+    ----------
+    default_font : str
+        Font used in TextClip. Valid value is one of TextClip.list("font")
+    normal_font_size : int
+        Normal font size (ImageMagic -pointsize parameter) By default used
+        everywhere except speed clip
+    large_font_size : int
+        Large font size (ImageMagic -pointsize parameter) By default used
+        in speed clip
+    padding : Position
+        How much padding is from the border of the image to overlays. Can
+        be set each parameter individually or as in CSS when setting
+        padding
+    margin : int
+        Margin between overlays
+
+    """
 
     def __init__(self, default_font="Bitstream-Vera-Sans-Mono-Bold",
             normal_font_size=30, large_font_size=40,
@@ -28,11 +48,36 @@ class DefaultConfig(object):
         self.make_map_config()
 
     def default_position(self, how_many_configs):
+        """Function calculates default position based on how many configs
+        already exists
+
+        Position is calculated as such: Align to right on padding.right value
+        First config is padding.top from top. Next are additonaly
+        normal_font_size+margin moved from top as many times as there are
+        configs.
+
+        So you can call this function many times and it will align configs on
+        the right one after another
+
+        Parameters
+        ----------
+        how_many_configs : int
+            How many configs already exists (Each config is element in
+            self.config)
+
+        Returns
+        ------
+        func
+            PositionFunction (input is clip and full_clip width height, return
+            is clip set at wanted position)
+        """
         return lambda t, W,H: t.set_pos((W-t.w-self.padding.right,
             self.padding.top+how_many_configs*(self.normal_font_size+self.margin)))
 
     @staticmethod
     def _if_set(input_value, default_value):
+        """If input_value is not None return it otherwise return
+        default_value"""
         return default_value if input_value is None else input_value
 
     def make_datetime_config(self, func=None, position=None):
