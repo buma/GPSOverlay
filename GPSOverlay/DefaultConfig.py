@@ -318,3 +318,19 @@ class DefaultConfig(object):
         both = CompositeVideoClip([map_clip, circle_clip])
         return both
 
+    def __repr__(self):
+        skeys = sorted(self.config.keys())
+        out = []
+        for key in skeys:
+            c = self.config[key]
+            f = ""
+            if c.func is not None:
+                f += "S"
+            cache = ""
+            if key == "map" and c.config is not None:
+                if c.config.get("maps_cache", None) != None:
+                    cache = "[C]"
+            if c.chart_func is not None:
+                f += "C"
+            out.append("{}{}:{}".format(key, cache, f))
+        return ",".join(out)
