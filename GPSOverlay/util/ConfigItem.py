@@ -1,3 +1,4 @@
+import inspect
 
 class ConfigItem(object):
     """Config for one overlay
@@ -142,6 +143,29 @@ class ConfigItem(object):
         """
         if is_chart:
             return self.chart_object.make_chart_at(gpx_index)
+        elif self.config is not None and "_run_func" in  self.config:
+            func_name, config = self.config["_run_func"]
+            #print (func_name, self.object)
+            func_name = getattr(self.object, func_name)
+
+#FIXME: make this better
+            gps_info["angle"] = gps_info["bearing"]
+            object_vars = vars(self)
+            args = {k:self._magic_value(k, v, object_vars) \
+                    for k,v in config.items() if self._is_argument(k) }
+            our_dict = gps_info
+            #print (func_name, config, args)
+            s = inspect.signature(func_name)
+#Gets parameters from wanted function
+            func_params = set(s.parameters.keys())
+            both = func_params.intersection(our_dict.keys())
+            #print ("BOTH:", both)
+            pos_args = []
+            for param_name, param in s.parameters.items():
+                if param_name in both:
+                    pos_args.append(our_dict[param_name])
+            #print ("POS ARGS:", pos_args)
+            return func_name(*pos_args, **args)
         return gps_info[key]
 
     @staticmethod

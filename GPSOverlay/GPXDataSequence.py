@@ -123,7 +123,6 @@ class GPXDataSequence(VideoClip):
 
         #TODO: check if both this exists in clips
         #self.fps = clip.fps
-        self.maps_cache = "./.map_cacheParenzana"
         self.chart_data = {}
         self.speedup_factor = speedup_factor
         self.gpx_file = gpx_file
@@ -307,28 +306,5 @@ class GPXDataSequence(VideoClip):
                     #self.images_starts[index+1]-t)
         return break_video, self.durations[index]
 
-    @staticmethod
-    def make_name(gps_info, width=None, height=None):
-        lat = round(gps_info['lat']*10**5)
-        lon = round(gps_info['lon']*10**5)
-        latlon= "{}_{}".format(lat, lon)
-        if width and height:
-            return latlon + "_{}_{}".format(width,height)
-        else:
-            return latlon
 
 
-    """ 
-    Gets map clip. If it already exists it's just read, otherwise it's created
-    """
-    def _get_map_image(self, index, center_lat, center_lon, bearing,
-            width=None, height=None):
-        mapname = os.path.join(self.maps_cache, "{}.png".format(index))
-        #print ("Map image: ", mapname)
-        #print ("Render map")
-        #start = time.process_time()
-        self.mapnik_renderer.render_map(center_lat, center_lon, bearing,
-                mapname, img_width=width, img_height=height)
-        #print ("Rendering took %r s" % (time.process_time()-start,))
-
-        return ImageClip(mapname)

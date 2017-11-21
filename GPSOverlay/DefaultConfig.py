@@ -202,7 +202,7 @@ class DefaultConfig(object):
 
     def make_map_config(self, map_width=250, map_height=250,
             map_zoom=16, map_mapfile=None, gpx_style=None,
-            gpx_file=True, func=None, position=None
+            gpx_file=True, func=None, position=None, maps_cache=None,
             ):
         from .MapnikRenderer import MapnikRenderer
         map_config = {
@@ -214,8 +214,13 @@ class DefaultConfig(object):
                 "mapfile": map_mapfile,
                 "gpx_style": gpx_style,
                 "gpx_file":"__gpx_file", #If true path to gpx file will be added when
-                "maps_cache":"__maps_cache",
+                "maps_cache":maps_cache,
                 #class is initialized
+                "_run_func":("render_map", {
+                    "_gps_info": "DICT",
+#lat, lon, angle parameters will be copied from gps_info
+                    "angle_offset": -10,
+                    })
                 }
         self.config["map"] = ConfigItem(
                 func= self._if_set(func, self.make_map_clip),
