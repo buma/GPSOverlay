@@ -261,7 +261,7 @@ class GPXDataSequence(VideoClip):
                 #print (c.pos(t))
                 #c.set_pos(lambda z: print("time:", z))
                 #print ("Blit on:", t-c.start, c.end)
-            print (key, "==", c.pos(t), c.w, c.h)
+            #print (key, "==", c.pos(t), c.w, c.h)
             #Replacing f with c if the sizes are the same doesn't speed up
             #the code
             #print ("key %s %s, Rendering took %r s" % (key,
