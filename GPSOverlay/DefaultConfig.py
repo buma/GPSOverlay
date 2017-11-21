@@ -217,7 +217,7 @@ class DefaultConfig(object):
                 "maps_cache":maps_cache,
                 #class is initialized
                 "_run_func":("render_map", {
-                    "_gps_info": "DICT",
+                    "_DICT": "gps_info",
 #lat, lon, angle parameters will be copied from gps_info
                     "angle_offset": -10,
                     })

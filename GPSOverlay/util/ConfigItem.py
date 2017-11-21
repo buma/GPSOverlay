@@ -150,22 +150,25 @@ class ConfigItem(object):
 
 #FIXME: make this better
             gps_info["angle"] = gps_info["bearing"]
-            object_vars = vars(self)
+            object_vars = locals()
             args = {k:self._magic_value(k, v, object_vars) \
                     for k,v in config.items() if self._is_argument(k) }
-            our_dict = gps_info
-            #print (func_name, config, args)
-            s = inspect.signature(func_name)
+            if "_DICT" in config:
+                our_dict = object_vars[config["_DICT"]]
+                #print (func_name, config, args)
+                s = inspect.signature(func_name)
 #Gets parameters from wanted function
-            func_params = set(s.parameters.keys())
-            both = func_params.intersection(our_dict.keys())
-            #print ("BOTH:", both)
-            pos_args = []
-            for param_name, param in s.parameters.items():
-                if param_name in both:
-                    pos_args.append(our_dict[param_name])
-            #print ("POS ARGS:", pos_args)
-            return func_name(*pos_args, **args)
+                func_params = set(s.parameters.keys())
+                both = func_params.intersection(our_dict.keys())
+                #print ("BOTH:", both)
+                pos_args = []
+                for param_name, param in s.parameters.items():
+                    if param_name in both:
+                        pos_args.append(our_dict[param_name])
+                #print ("POS ARGS:", pos_args)
+                return func_name(*pos_args, **args)
+            else:
+                return func_name(**args)
         return gps_info[key]
 
     @staticmethod
