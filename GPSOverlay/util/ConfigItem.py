@@ -221,7 +221,7 @@ class ConfigItem(object):
             class_init = "class" in self.config
         if self.chart_config is not None:
             return class_init or "class" in self.chart_config
-        return False
+        return class_init
 
 
     def init(self, object_vars):
