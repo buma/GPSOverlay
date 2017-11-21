@@ -149,7 +149,7 @@ class GPXDataSequence(VideoClip):
                     self.h)
             if c is None:
                 continue
-            print (key, "==", c.pos(t), c.w, c.h)
+            #print (key, "==", c.pos(t), c.w, c.h)
             #print ("key %s %s, Rendering took %r s" % (key,
                 #break_video.name, time.time()-start_key,))
             f = c.blit_on(f, t)
