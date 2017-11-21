@@ -247,7 +247,7 @@ class DefaultConfig(object):
     def make_chart_config(self, key, func, position, config):
         if key not in self.config:
             self.config[key] = ConfigItem(chart_position=position,
-                    config=config, chart_func=func)
+                    chart_config=config, chart_func=func)
         else:
             ci = self.config[key]
             ci.chart_position = position
