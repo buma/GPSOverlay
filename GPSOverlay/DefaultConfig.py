@@ -214,6 +214,7 @@ class DefaultConfig(object):
                 "mapfile": map_mapfile,
                 "gpx_style": gpx_style,
                 "gpx_file":"__gpx_file", #If true path to gpx file will be added when
+                "maps_cache":"__maps_cache",
                 #class is initialized
                 }
         self.config["map"] = ConfigItem(

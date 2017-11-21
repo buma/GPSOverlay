@@ -21,8 +21,42 @@ except:
 
 
 class MapnikRenderer(object):
+    """Renders map with help of Mapnik
+
+    Note
+    ----
+    If Mapnik XML style file uses relative paths to its datasources it can't be
+    moved to different folder.
+
+
+    Parameters
+    ---------
+    map_w : int
+        Wanted map width
+    map_h : int
+        Wanted map height
+    gpx_file : filepath
+        GPX filepath to show on map (gpx_style also needs to be set if this is
+        set)
+    gpx_style : str
+        Name of mapnik style layer that should be used to style GPX track
+        layer. It needs to already exists in Mapnik style file!.
+    map_zoom : float
+        Mapnik zoom from 0-19 (higher number higher zoom) 
+    mapfile : str
+        Full path to mapnik XML style file. If it is None empty transparent map is
+        rendered. If gpx_file is set then only the GPX track is rendered.
+    maps_cache : str
+        Path to where should we cache generated maps so that they are generated
+        only once. Or None if no cache should be used
+    """
 # long/lat in degrees, aka ESPG:4326 and "WGS 84"
     longlat = mapnik.Projection('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+    """mapnik.Projection: In what coordinate system are input coordinates.
+     AKA EPSG:4326
+
+    Project input latitude and latitude to spherical mercator
+    """
 # can also be constructed as:
 #longlat = mapnik.Projection('+init=epsg:4326')
 
@@ -30,7 +64,8 @@ class MapnikRenderer(object):
             gpx_file=None,
             gpx_style=None,
             map_zoom=18,
-            mapfile=None):
+            mapfile=None,
+            maps_cache=None):
         #start = time.process_time()
         self.m = mapnik.Map(map_w, map_h)
         #print ("Mapnik took %r s" % (time.process_time()-start,))
@@ -43,31 +78,97 @@ class MapnikRenderer(object):
 # Create a symbolizer to draw the points
         #if "openstreetmap-carto" in mapfile:
 
-#Why this doesn't draw gpx line, but if we save xml and draw map with it line
-#is drawn
-        #style = mapnik.Style()
-        #style.filter_mode=mapnik.filter_mode.FIRST
-        #rule = mapnik.Rule()
-        #line_symbolizer = mapnik.LineSymbolizer()
-        #line_symbolizer.stroke = mapnik.Color('rgb(0%,0%,100%)')
-        #line_symbolizer.stroke_width = 4
-        #line_symbolizer.stroke_opacity= 0.4
-        ##line_symbolizer.simplify = 0.1
-
-        #rule.symbols.append(line_symbolizer)
-        #style.rules.append(rule)
-        #self.m.append_style('gps', style)
-        #print ("Making style")
 
         self.draw_gpx_track(gpx_file, gpx_style)
 
 
 
-        self.imgx = map_w
-        self.imgy = map_h
+        self.map_width = map_w
+        self.map_height = map_h
         self.map_zoom = map_zoom
+        self.maps_cache=maps_cache
+        self.mapnik_style_file = mapfile
+
+        if self.maps_cache is not None:
+            self._save_cache()
+        else:
+            raise NotImplementedError("Running without cache isn't supported!")
+
+    def _save_cache(self):
+        """Saved options for map generation to cache
+
+
+        All settings are saved in config.json in maps_cache folder.
+
+        If config.json already exists in cache folder it is compared with
+        current settings. If it is not the same Exception is raised
+        """
+        import json
+        import os.path
+
+        current_cache = {k:v for k,v in vars(self).items() if k != 'm'}
+        cache_fn = os.path.join(self.maps_cache, "config.json")
+
+        if os.path.isfile(cache_fn):
+            with open(cache_fn, "r") as f:
+                saved_cache = json.load(f)
+                if current_cache != saved_cache:
+                    raise Exception("Saved map_cache != current mapnik " +
+                            "config. Change maps_cache or delete previous "+
+                            " cache file.{} Current:{}".format(saved_cache,
+                                current_cache))
+
+        with open(cache_fn, "w") as f:
+            json.dump(current_cache, f)
+
+    def add_gpx_style(self, gpx_style):
+        """Adds mapnik style for styling GPX track
+
+        This is blue 40% transparent 4 width line.
+
+        Parameters
+        ---------
+        gpx_style : str
+            Name of the style layer
+
+
+        Note
+        ----
+        This doesn't work for some reason. Style is added and if mapnik XML is
+        saved and read it is used.
+        """
+        style = mapnik.Style()
+        style.filter_mode=mapnik.filter_mode.FIRST
+        rule = mapnik.Rule()
+        line_symbolizer = mapnik.LineSymbolizer()
+        line_symbolizer.stroke = mapnik.Color('rgb(0%,0%,100%)')
+        line_symbolizer.stroke_width = 4
+        line_symbolizer.stroke_opacity= 0.4
+        #line_symbolizer.simplify = 0.1
+
+        rule.symbols.append(line_symbolizer)
+        style.rules.append(rule)
+        self.m.append_style(gpx_style, style)
+        print ("Making style")
 
     def draw_gpx_track(self, gpx_file, gpx_style):
+        """Adds layer which draws GPX Track
+
+        Tracks layer from GPX file is drawn
+
+        Notes
+        ----
+        Since adding gpx_style to Mapnik XML doesn't work for some reason.
+        Style for styling lines needs to already exists in Mapnik XML
+
+        Parameters
+        ---------
+        gpx_file : str
+            Full path to gpx file
+        gpx_style : str
+            Name of style layer for gpx file
+
+        """
         if gpx_file is not None and gpx_style is not None:
 # Create a layer to hold GPX points
             print ("Adding GPX file")
@@ -84,25 +185,95 @@ class MapnikRenderer(object):
         #for layer in self.m.layers:
             #print (layer.name)
 
-#y - lat - 46
-#x - lon - 15
-#angle of map, so that to direction is at the top
-    def render_map(self, centrey, centrex, angle, map_uri, zoom=None,
-            overwrite=False, img_width=None, img_height=None):
+    def _make_name(lat, lon, width=None, height=None):
+        """Generates name based on lat, lon width and height
 
+        Name is lat_lon rounded to 5 decimal places after multipled by 10^5
+        So that we have integer. _width_height is added if they are not None
+
+        Parameters
+        ---------
+        lat : float
+            Latitude in WGS84 - center point of a map (around 46 in Europe)
+        lon : float
+            Longitude in WGS84 - center point of a map (around 15 in Europe)
+        width : int
+            Wanted width of the map
+        height : int
+            Wanted height of the map
+
+
+        Returns
+        ------
+        str
+            Filename
+
+        """
+        round_lat = round(lat*10**5)
+        round_lon = round(lon*10**5)
+        latlon= "{}_{}".format(round_lat, round_lon)
+        if width and height:
+            return latlon + "_{}_{}".format(width,height)
+        else:
+            return latlon
+
+    def render_map(self, lat, lon, angle=None, angle_offset=0, zoom=None,
+            overwrite=False, img_width=None, img_height=None):
+        """Renders map with help of mapnik
+
+        If maps_cache is used it is first checked if image already exists in
+        cache. Image name is created with self._make_name which creates name
+        from lat_lon rounded to 5 decimals and width height if they are
+        provided. If image exists and overwrite is False image is returned as
+        ImageClip. If overwrite is True image is deleted and image is rendered
+        and also returned as ImageClip.
+
+        Parameters
+        ---------
+        lat : float
+            Latitude in WGS84 - center point of a map (around 46 in Europe)
+        lon : float
+            Longitude in WGS84 - center point of a map (around 15 in Europe)
+        angle : float
+            If we want to rotate map. It should show where up is. AKA bearing
+        angle_offset : int
+            How much offset is between camera and forward direction so that
+            map is correctly oriented
+        zoom : float
+            Mapnik zoom from 0-19 (higher number higher zoom) If we want
+            different zoom then what was set in constructor
+        overwrite : bool
+            If we are using map cache do we want to overwrite existing images
+        img_width : int
+            If we want different size of map then what was set in constructor
+        img_height : int
+            If we want different size of map then what was set in constructor
+
+        Returns
+        -------
+        moviepy.video.VideoClip.ImageClip
+            Rendered image as clip
+
+
+        """
+        map_uri = None
+        width = self.map_width if img_width is None else img_width
+        height = self.map_height if img_height is None else img_height
+        #print ("img_width: {} map_width:{} width:{}".format(img_width, self.map_width, width))
+        if self.maps_cache is not None:
+            fn = self._make_name(lat, lon, width,
+                height)
+            map_uri = os.path.join(self.maps_cache, "{}.png".format(fn))
 #If we don't want to overwrite and file already exists skip map rendering
-        if not overwrite and os.path.isfile(map_uri):
-            return
+            if not overwrite and os.path.isfile(map_uri):
+                return ImageClip(map_uri)
 #If we want to overwrite and file exists we remove file
-        if overwrite and os.path.isfile(map_uri):
-            os.remove(map_uri)
+            if overwrite and os.path.isfile(map_uri):
+                os.remove(map_uri)
+        else:
+            raise NotImplementedError("Running without cache isn't supported")
         if zoom is None:
             zoom = self.map_zoom
-
-        #self.m.zoom_all()
-        #mapnik.render_to_file(self.m, map_uri)
-        #return
-
 
         if angle is None:
 # spherical mercator (most common target map projection of osm data imported with osm2pgsql)
@@ -110,7 +281,7 @@ class MapnikRenderer(object):
         else:
 #Map rotation https://gis.stackexchange.com/questions/183175/rotating-90-using-two-point-equidistant-projection-with-proj4
             merc = mapnik.Projection('+proj=aeqd +ellps=sphere +lat_0=90 +lon_0=-' +
-                    str(angle-10))
+                    str(angle+angle_offset))
 
 #Layer with current location:
 #TODO add drawing current point
@@ -119,7 +290,7 @@ class MapnikRenderer(object):
                 gs = ('{ "type":"FeatureCollection", "features": [ {' +
                             '"type":"Feature", "properties":{"name":"current"},'+
                                 '"geometry": { "type":"Point",' +
-                            '"coordinates":[%f, %f]}}]}' %(centrex, centrey))
+                            '"coordinates":[%f, %f]}}]}' %(lon, lat))
                 ds = mapnik.Datasource(
                         type='geojson',
                         inline=gs
@@ -150,13 +321,10 @@ class MapnikRenderer(object):
 # ensure the target map projection is mercator
         self.m.srs = merc.params()
 
-        centre = mapnik.Coord(centrex, centrey)  
+        centre = mapnik.Coord(lon, lat)  
         transform = mapnik.ProjTransform(MapnikRenderer.longlat, merc)
         merc_centre = transform.forward(centre)
 
-        width = self.imgx if img_width is None else img_width
-        height = self.imgy if img_height is None else img_height
-        #print ("img_width: {} imgx:{} width:{}".format(img_width, self.imgx, width))
 
         if img_width is not None and img_height is not None:
             self.m.resize(width, height)
@@ -182,9 +350,10 @@ class MapnikRenderer(object):
         #start = time.process_time()
         mapnik.render_to_file(self.m, map_uri)
         if img_width is not None and img_height is not None:
-            self.m.resize(self.imgx, self.imgy)
+            self.m.resize(self.map_width, self.map_height)
 
         #print ("render took %r s" % (time.process_time()-start,))
+        return ImageClip(map_uri)
     if False:
 # Print stats
         print("Stats:")
@@ -195,9 +364,10 @@ class MapnikRenderer(object):
         print("  Render into file: " + map_uri)
         print("  Image size: " + str(m.width) + "x" + str(m.height))
 
+
 class MapnikMultiProcessRenderer(multiprocessing.Process):
 
-    def __init__(self, task_queue, result_queue, imgx, imgy,
+    def __init__(self, task_queue, result_queue, map_width, map_height,
             gpx_file=None, zoom=18, maps_cache = "./.map_cache",
             mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"):
         multiprocessing.Process.__init__(self)
@@ -205,7 +375,7 @@ class MapnikMultiProcessRenderer(multiprocessing.Process):
         self.result_queue = result_queue
         self.zoom = zoom
         self.maps_cache = maps_cache
-        self.renderer = MapnikRenderer(imgx, imgy, gpx_file, mapfile)
+        self.renderer = MapnikRenderer(map_width, map_height, gpx_file, mapfile)
         self.cnt_times = 0
         self.cnt_items = 0
 
@@ -243,11 +413,11 @@ class MapnikMultiProcessRenderer(multiprocessing.Process):
 
 
 if __name__ == "__main__":
-    centrey, centrex, angle = (46.55711886333333, 15.62431150777778, 137.31216620286796)
-    #render_map(centrey, centrex, angle, "map_aeqd137_18.png")
-    centrey, centrex, angle = (46.556164420769235, 15.624496195384616, 191.10020115018185)
-    #render_map(centrey, centrex, angle, "map_aeqd1191_18.png")
-    #render_map(46.5102,15.6956,None,"testmap.png", zoom=15,imgx=500,imgy=500)
+    lat, lon, angle = (46.55711886333333, 15.62431150777778, 137.31216620286796)
+    #render_map(lat, lon, angle, "map_aeqd137_18.png")
+    lat, lon, angle = (46.556164420769235, 15.624496195384616, 191.10020115018185)
+    #render_map(lat, lon, angle, "map_aeqd1191_18.png")
+    #render_map(46.5102,15.6956,None,"testmap.png", zoom=15,map_width=500,map_height=500)
     m = MapnikRenderer(500,500, gpx_file="/data2/snemanje/20171016/data.gpx",
             gpx_style="gpx",
             mapfile="/home/mabu/Documents/MapBox/project/simple-osm/map_transparent.xml")
