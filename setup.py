@@ -12,9 +12,11 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 # get the dependencies and installs
 with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
-    all_reqs = filter(lambda x: not x.startswith("#"), f.read().strip().split("\n"))
+    all_reqs = list(filter(lambda x: not x.startswith("#"),
+        f.read().strip().split("\n")))
 
 install_requires = [x.strip() for x in all_reqs if 'git+' not in x]
+install_requires.append("gpxpy")
 dependency_links = [x.strip().replace('git+', '') for x in all_reqs if x.startswith('git+')]
 
 setup(
