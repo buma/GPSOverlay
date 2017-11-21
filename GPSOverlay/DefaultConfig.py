@@ -80,7 +80,9 @@ class DefaultConfig(object):
             yield "map", False, self.config["map"]
         for key, value in self.config.items():
             if key != "map":
-                yield key, False, value
+                #Skips keys with no simple function (only charts)
+                if value.func is not None:
+                    yield key, False, value
             if value.chart_object is not None:
                 yield key, True, value
 
