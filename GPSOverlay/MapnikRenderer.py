@@ -1,6 +1,7 @@
 import time
 import os
 import multiprocessing
+from moviepy.video.VideoClip import ImageClip
 try:
     import mapnik2 as mapnik
 except:
@@ -185,6 +186,7 @@ class MapnikRenderer(object):
         #for layer in self.m.layers:
             #print (layer.name)
 
+    @staticmethod
     def _make_name(lat, lon, width=None, height=None):
         """Generates name based on lat, lon width and height
 
