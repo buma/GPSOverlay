@@ -204,7 +204,13 @@ class DefaultConfig(object):
             map_zoom=16, map_mapfile=None, gpx_style=None,
             gpx_file=True, func=None, position=None, maps_cache=None,
             ):
-        from .MapnikRenderer import MapnikRenderer
+        try:
+            from .MapnikRenderer import MapnikRenderer
+        except ImportError as i:
+            print ("Skipping map configuration because mapnik couldn't be " +
+                    "imported")
+            return
+
         map_config = {
                 "class": MapnikRenderer, #Calls init on this class with given
                 #parameters
