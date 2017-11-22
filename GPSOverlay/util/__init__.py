@@ -29,6 +29,29 @@ def make_func(x_values, y_values):
     n=y1-k*x1
     return lambda x: k*x+n
 
+def find_font(fontconfig):
+    """Finds font with font config pattern:
+
+    It only works if matplotlib is installed. Otherwise it returns None
+
+    Fontconfig pattern looks like that:
+    <families>-<point sizes>:<name1>=<values1>:<name2>=<values2>
+    For example:
+        Roboto:medium:italic
+
+    Familiy: Roboto, Weight medium style italic
+    Returns path to ttf file or None if not found
+
+    """
+    try:
+        import matplotlib.font_manager
+        font = matplotlib.font_manager.FontProperties(fontconfig)
+        return matplotlib.font_manager.findfont(font)
+    except Exception as e:
+        pass
+    return None
+
+
 class BreakType(Enum):
     NO = 0
     START = 1
