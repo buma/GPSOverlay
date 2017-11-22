@@ -1,9 +1,11 @@
 import datetime
-from moviepy.video.VideoClip import TextClip, ImageClip, ColorClip, VideoClip
+from moviepy.video.VideoClip import ImageClip, ColorClip, VideoClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.tools.drawing import circle, color_gradient
 from .util.Position import Position
 from .util.ConfigItem import ConfigItem
+from .util import find_font
+from TextClipPIL import TextClipPIL
 
 
 class DefaultConfig(object):
@@ -28,7 +30,7 @@ class DefaultConfig(object):
 
     """
 
-    def __init__(self, default_font="Bitstream-Vera-Sans-Mono-Bold",
+    def __init__(self, default_font=find_font("Bitstream Vera Sans:bold:mono"),
             normal_font_size=30, large_font_size=40,
             padding=Position.make([40,30,0]),
             margin=10):
@@ -131,7 +133,7 @@ class DefaultConfig(object):
     def make_datetime_config(self, func=None, position=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["datetime"] = ConfigItem(
-                func= self._if_set(func, lambda dt: TextClip(dt.strftime("%d.%m.%Y %H:%M:%S"),
+                func= self._if_set(func, lambda dt: TextClipPIL(dt.strftime("%d.%m.%Y %H:%M:%S"),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position=self._if_set(position,
@@ -143,7 +145,7 @@ class DefaultConfig(object):
             chart_position=None, config=None, stroke_color=None): 
         how_many_configs = len(self.config.keys())
         self.config["elevation"] = ConfigItem(
-                func = self._if_set(func, lambda alt: TextClip("%4.2f m" % (alt,),
+                func = self._if_set(func, lambda alt: TextClipPIL("%4.2f m" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position=self._if_set(position,
@@ -156,7 +158,7 @@ class DefaultConfig(object):
             chart_position=None, config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["heart"] = ConfigItem(
-                func = self._if_set(func, lambda alt: TextClip("%d BPM" % (alt,),
+                func = self._if_set(func, lambda alt: TextClipPIL("%d BPM" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='red',
             stroke_color=stroke_color)),
                 position=self._if_set(position,
@@ -169,7 +171,7 @@ class DefaultConfig(object):
             chart_position=None, config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["bearing"] = ConfigItem(
-                func = self._if_set(func,  lambda alt: TextClip("%3.1f °" % (alt,),
+                func = self._if_set(func,  lambda alt: TextClipPIL("%3.1f °" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position = self._if_set(position,
@@ -192,7 +194,7 @@ class DefaultConfig(object):
             chart_position=None, config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["slope"] = ConfigItem(
-                func = self._if_set(func, lambda slope: TextClip("%d %%" % (slope,),
+                func = self._if_set(func, lambda slope: TextClipPIL("%d %%" % (slope,),
             fontsize=self.normal_font_size, font=self.default_font, color='white',
             stroke_color=stroke_color)),
                 position = self._if_set(position,
@@ -285,7 +287,7 @@ class DefaultConfig(object):
             txt = "STOPPED"
         else:
             txt = "%2.2f km/h" % (speed*3.6)
-        return TextClip(txt,
+        return TextClipPIL(txt,
             fontsize=self.large_font_size, font=self.default_font, color='white',
             stroke_color=None)
 
