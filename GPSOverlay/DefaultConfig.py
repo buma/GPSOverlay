@@ -128,24 +128,24 @@ class DefaultConfig(object):
         default_value"""
         return default_value if input_value is None else input_value
 
-    def make_datetime_config(self, func=None, position=None):
+    def make_datetime_config(self, func=None, position=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["datetime"] = ConfigItem(
                 func= self._if_set(func, lambda dt: TextClip(dt.strftime("%d.%m.%Y %H:%M:%S"),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
-                    stroke_color='black')),
+                    stroke_color=stroke_color)),
                 position=self._if_set(position,
                     self.default_position(how_many_configs)),
                 sample_value=datetime.datetime.now()
                 )
 
     def make_elevation_config(self, func=None, position=None,
-            chart_position=None, config=None): 
+            chart_position=None, config=None, stroke_color=None): 
         how_many_configs = len(self.config.keys())
         self.config["elevation"] = ConfigItem(
                 func = self._if_set(func, lambda alt: TextClip("%4.2f m" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
-                    stroke_color='black')),
+                    stroke_color=stroke_color)),
                 position=self._if_set(position,
                     self.default_position(how_many_configs)),
                 chart_position = chart_position,
@@ -153,12 +153,12 @@ class DefaultConfig(object):
                 sample_value=42.24
                 )
     def make_heart_config(self, func=None, position=None,
-            chart_position=None, config=None):
+            chart_position=None, config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["heart"] = ConfigItem(
                 func = self._if_set(func, lambda alt: TextClip("%d BPM" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='red',
-            stroke_color='orange')),
+            stroke_color=stroke_color)),
                 position=self._if_set(position,
                     self.default_position(how_many_configs)),
                 chart_position=chart_position,
@@ -166,12 +166,12 @@ class DefaultConfig(object):
                 sample_value=133
                 )
     def make_bearing_config(self, func=None, position=None,
-            chart_position=None, config=None):
+            chart_position=None, config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["bearing"] = ConfigItem(
                 func = self._if_set(func,  lambda alt: TextClip("%3.1f °" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
-                    stroke_color='black')),
+                    stroke_color=stroke_color)),
                 position = self._if_set(position,
                     self.default_position(how_many_configs)),
                 chart_position=chart_position,
@@ -179,7 +179,7 @@ class DefaultConfig(object):
                 sample_value=260
                 )
     def make_speed_config(self, func=None, position=None,
-            chart_position=None, config=None):
+            chart_position=None, config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["speed"] = ConfigItem(
                 func = self._if_set(func, self.make_speed_clip),
@@ -189,12 +189,12 @@ class DefaultConfig(object):
                 sample_value=15.6
                 )
     def make_slope_config(self, func=None, position=None,
-            chart_position=None, config=None):
+            chart_position=None, config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
         self.config["slope"] = ConfigItem(
                 func = self._if_set(func, lambda slope: TextClip("%d %%" % (slope,),
             fontsize=self.normal_font_size, font=self.default_font, color='white',
-            stroke_color='black')),
+            stroke_color=stroke_color)),
                 position = self._if_set(position,
                     self.default_position(how_many_configs)),
                 chart_position=chart_position,
@@ -287,7 +287,7 @@ class DefaultConfig(object):
             txt = "%2.2f km/h" % (speed*3.6)
         return TextClip(txt,
             fontsize=self.large_font_size, font=self.default_font, color='white',
-            stroke_color='black')
+            stroke_color=None)
 
 
 
