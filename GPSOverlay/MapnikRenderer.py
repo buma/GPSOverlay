@@ -1,7 +1,11 @@
 import time
 import os
 import multiprocessing
+from io import BytesIO
+
 from moviepy.video.VideoClip import ImageClip
+from PIL import Image as ImagePIL
+import numpy as np
 try:
     import mapnik2 as mapnik
 except:
@@ -20,9 +24,10 @@ except:
 #South up
 #merc = mapnik.Projection('+proj=tpeqd +lat_1=35 +lat_2=35 +lon_1=-80 +lon_2=-122  +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs')
 
-
 class MapnikRenderer(object):
     """Renders map with help of Mapnik
+
+    And returns ImageClips
 
     Note
     ----
@@ -92,8 +97,6 @@ class MapnikRenderer(object):
 
         if self.maps_cache is not None:
             self._save_cache()
-        else:
-            raise NotImplementedError("Running without cache isn't supported!")
 
     def _save_cache(self):
         """Saved options for map generation to cache
@@ -272,8 +275,6 @@ class MapnikRenderer(object):
 #If we want to overwrite and file exists we remove file
             if overwrite and os.path.isfile(map_uri):
                 os.remove(map_uri)
-        else:
-            raise NotImplementedError("Running without cache isn't supported")
         if zoom is None:
             zoom = self.map_zoom
 
@@ -350,12 +351,30 @@ class MapnikRenderer(object):
 
 
         #start = time.process_time()
-        mapnik.render_to_file(self.m, map_uri)
+        if self.maps_cache is not None:
+            mapnik.render_to_file(self.m, map_uri)
+            map_data = map_uri
+        else:
+#Renders map to image in memory saves it to buffer and reads in numpy
+            im = mapnik.Image(self.m.width, self.m.height)
+            mapnik.render(self.m, im)
+            #im.save("/tmp/tmp.png", 'png256')
+#Saving image to bytes buffer needs to be nonpalletted image otherwise it needs
+            #to be converted to RGB when reading in numpy anyways
+            string_image = im.tostring('png32')
+            buffer = BytesIO(string_image)
+            #with open("/tmp/tmp1.png", "wb") as o:
+                #o.write(buffer.getvalue())
+            pil_image = ImagePIL.open(buffer)
+            #print (pil_image.format, pil_image.mode, pil_image.size,
+                    #pil_image.palette)
+            map_data = np.asarray(pil_image)
+            #map_data = "/tmp/tmp.png"
         if img_width is not None and img_height is not None:
             self.m.resize(self.map_width, self.map_height)
 
         #print ("render took %r s" % (time.process_time()-start,))
-        return ImageClip(map_uri)
+        return ImageClip(map_data)
     if False:
 # Print stats
         print("Stats:")
