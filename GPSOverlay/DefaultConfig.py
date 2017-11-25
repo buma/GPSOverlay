@@ -3,9 +3,11 @@ from moviepy.video.VideoClip import ImageClip, ColorClip, VideoClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.tools.drawing import circle, color_gradient
 from .util.Position import Position
-from .util.ConfigItem import ConfigItem
+from .util.ConfigItem import ConfigItem, ChartConfigItem
 from .util import find_font
 from TextClipPIL import TextClipPIL
+
+from collections import defaultdict
 
 
 class DefaultConfig(object):
@@ -39,7 +41,7 @@ class DefaultConfig(object):
         self.large_font_size = large_font_size
         self.padding = padding
         self.margin = margin
-        self.config = {}
+        self.config = defaultdict(list)
 
     def config_items(self, need_config=False):
         """Returns config items same format as dict.items()
@@ -53,40 +55,38 @@ class DefaultConfig(object):
             in config)
 
         """
-        for key, value in self.config.items():
-            if need_config and value.need_init():
-                yield key, value
-            elif not need_config:
-                yield key, value
+        for key, configs in self.config.items():
+            for config in configs:
+                if need_config and config.need_init():
+                    yield key, config
+                elif not need_config:
+                    yield key, config
 
     def make_items(self):
         """Returns config items to be used in make frame
 
-        Key is config key (elevation, speed, etc.), second value is boolean
-        True if value has chart and false otherwise value is util.ConfigItem
+        Key is config key (elevation, speed, etc.), second value is
+        util.ConfigItem
 
         Map is always returned first (if it exists)
         This is because map needs to be first when composing on breaks.
-        Each ConfigItem that has chart is returned twice. First with second
-        value False then with second value True.
+        Each ConfigItem that has multiple types of overlays (Simple, Chart,
+        Gauges) is returned multiple types. (Key appears multiple types, each
+        time with different ConfigItem)
 
         Yields
         -----
-        str, bool, util.ConfigItem
-            First item is config key, second shows if we want to show Chart and
-            is True only if chart_object actually exists. And third is
-            ConfigItem
+        str, util.ConfigItem
+            First item is config key, second is ConfigItem
 
         """
         if "map" in self.config:
-            yield "map", False, self.config["map"]
-        for key, value in self.config.items():
-            if key != "map":
-                #Skips keys with no simple function (only charts)
-                if value.func is not None:
-                    yield key, False, value
-            if value.chart_object is not None:
-                yield key, True, value
+            yield "map", self.config["map"][0]
+        the_rest = filter(lambda key_configs: key_configs[0] != "map",
+                self.config.items())
+        for key, configs in the_rest:
+            for value in configs:
+                yield key, value
 
 
     def make_default_config(self):
@@ -132,77 +132,72 @@ class DefaultConfig(object):
 
     def make_datetime_config(self, func=None, position=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
-        self.config["datetime"] = ConfigItem(
+        self.config["datetime"].append( ConfigItem(
                 func= self._if_set(func, lambda dt: TextClipPIL(dt.strftime("%d.%m.%Y %H:%M:%S"),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position=self._if_set(position,
                     self.default_position(how_many_configs)),
                 sample_value=datetime.datetime.now()
-                )
+                ))
 
     def make_elevation_config(self, func=None, position=None,
-            chart_position=None, config=None, stroke_color=None): 
+            config=None, stroke_color=None): 
         how_many_configs = len(self.config.keys())
-        self.config["elevation"] = ConfigItem(
+        self.config["elevation"].append( ConfigItem(
                 func = self._if_set(func, lambda alt: TextClipPIL("%4.2f m" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position=self._if_set(position,
                     self.default_position(how_many_configs)),
-                chart_position = chart_position,
                 config = config,
                 sample_value=42.24
-                )
+                ))
     def make_heart_config(self, func=None, position=None,
-            chart_position=None, config=None, stroke_color=None):
+            config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
-        self.config["heart"] = ConfigItem(
+        self.config["heart"].append( ConfigItem(
                 func = self._if_set(func, lambda alt: TextClipPIL("%d BPM" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='red',
             stroke_color=stroke_color)),
                 position=self._if_set(position,
                     self.default_position(how_many_configs)),
-                chart_position=chart_position,
                 config=config,
                 sample_value=133
-                )
+                ))
     def make_bearing_config(self, func=None, position=None,
-            chart_position=None, config=None, stroke_color=None):
+            config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
-        self.config["bearing"] = ConfigItem(
+        self.config["bearing"].append( ConfigItem(
                 func = self._if_set(func,  lambda alt: TextClipPIL("%3.1f °" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position = self._if_set(position,
                     self.default_position(how_many_configs)),
-                chart_position=chart_position,
                 config=config,
                 sample_value=260
-                )
+                ))
     def make_speed_config(self, func=None, position=None,
-            chart_position=None, config=None, stroke_color=None):
+            config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
-        self.config["speed"] = ConfigItem(
+        self.config["speed"].append( ConfigItem(
                 func = self._if_set(func, self.make_speed_clip),
                 position = self._if_set(position, self.default_position(how_many_configs)),
-                chart_position=chart_position,
                 config=config,
                 sample_value=15.6
-                )
+                ))
     def make_slope_config(self, func=None, position=None,
-            chart_position=None, config=None, stroke_color=None):
+            config=None, stroke_color=None):
         how_many_configs = len(self.config.keys())
-        self.config["slope"] = ConfigItem(
+        self.config["slope"].append( ConfigItem(
                 func = self._if_set(func, lambda slope: TextClipPIL("%d %%" % (slope,),
             fontsize=self.normal_font_size, font=self.default_font, color='white',
             stroke_color=stroke_color)),
                 position = self._if_set(position,
                     self.default_position(how_many_configs)),
-                chart_position=chart_position,
                 config=config,
                 sample_value=-4.3
-                )
+                ))
 
     def make_map_config(self, map_width=250, map_height=250,
             map_zoom=16, map_mapfile=None, gpx_style=None,
@@ -232,7 +227,7 @@ class DefaultConfig(object):
                     "angle_offset": -10,
                     })
                 }
-        self.config["map"] = ConfigItem(
+        self.config["map"].append( ConfigItem(
                 func= self._if_set(func, self.make_map_clip),
                 # center
                 #'map_pos': lambda t, W,H:
@@ -244,21 +239,17 @@ class DefaultConfig(object):
                 config=map_config,
                 sample_value= lambda clip, config:ColorClip((config["map_w"],
                     config["map_h"]), [125,35,0])
-                )
+                ))
 
-    def make_chart_config(self, key, func, position, config):
-        if key not in self.config:
-            self.config[key] = ConfigItem(chart_position=position,
-                    chart_config=config, chart_func=func)
-        else:
-            ci = self.config[key]
-            ci.chart_position = position
-            ci.chart_func = func
-            ci.chart_config = config
-        if "wanted_value" not in self.config[key].chart_config:
-            self.config[key].chart_config["wanted_value"] = key
-        if "gpx_data" not in self.config[key].chart_config:
-            self.config[key].chart_config["gpx_data"] = "__gpx_data"
+    def make_chart_config(self, key, position, config, func=None):
+        if "wanted_value" not in config:
+            config["wanted_value"] = key
+        if "gpx_data" not in config:
+            config["gpx_data"] = "__gpx_data"
+        func = self._if_set(func, lambda c: c)
+        ci = ChartConfigItem(position=position,
+                config=config, func=func)
+        self.config[key].append(ci)
 
     def make_demo_clip(self, image=None):
         def make_frame(t):
@@ -266,9 +257,8 @@ class DefaultConfig(object):
                 f = ColorClip((1333,1000), [56, 14,252]).make_frame(0)
             else:
                 f = ImageClip(image).make_frame(0)
-            for key, ci in self.config.items():
-                print (key, repr(ci))
-                data = ci.sample(f)
+            for key, key_config in self.config.make_items():
+                data = key_config.sample(f)
                 print ("data:", data)
                 if data is None:
                     continue
@@ -324,15 +314,14 @@ class DefaultConfig(object):
         skeys = sorted(self.config.keys())
         out = []
         for key in skeys:
-            c = self.config[key]
-            f = ""
-            if c.func is not None:
-                f += "S"
+            c = self.config[key][0]
+            f = []
             cache = ""
             if key == "map" and c.config is not None:
                 if c.config.get("maps_cache", None) != None:
                     cache = "[C]"
-            if c.chart_func is not None:
-                f += "C"
-            out.append("{}{}:{}".format(key, cache, f))
+            else:
+                for c in self.config[key]:
+                    f.append(c.config_type)
+            out.append("{}{}:{}".format(key, cache, "".join(f)))
         return ",".join(out)

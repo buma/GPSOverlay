@@ -144,8 +144,8 @@ class GPXDataSequence(VideoClip):
         gps_info = gps_info._asdict()
         #print (gps_info, self.data_clips)
 # For each wanted datafield make clip and set position
-        for key, chart,  key_config in self.config.make_items():
-            c = key_config.get_clip(key, chart,  gps_info, gpx_index, self.w,
+        for key, key_config in self.config.make_items():
+            c = key_config.get_clip(key, gps_info, gpx_index, self.w,
                     self.h)
             if c is None:
                 continue

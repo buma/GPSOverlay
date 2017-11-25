@@ -11,7 +11,7 @@ class ConfigItem(object):
     size.
 
     We can have simple overlays which just show value (like speed, elevation,
-    slop, heart rate, etc.)
+    slope, heart rate, etc.)
     Or complex overlays like gauges, charts, maps.
 
     Values in [] show how can we show items:
@@ -36,11 +36,6 @@ class ConfigItem(object):
     position : function
         Input parameter is created clip made with previous function and width
         and height of full image. Output is Clip set to wanted position
-    chart_func : function
-        No idea FIXME
-    chart_position : function
-        Input parameter is created clip made with previous function and width
-        and height of full image. Output is Clip set to wanted position
     config : dict
         Specific needed settings for complex overlays (map and charts for now)
     sample_value 
@@ -53,15 +48,11 @@ class ConfigItem(object):
     GPSOverlay.GaugeClipMaker : Gauge generator
 
     """
-    def __init__(self, func=None, position=None, chart_func=None,
-            chart_position=None, config=None, chart_config=None,
+    def __init__(self, func=None, position=None, config=None,
             sample_value=None):
         self.func = func
         self.position = position
-        self.chart_func = chart_func
-        self.chart_position = chart_position
         self.config = config
-        self.chart_config = chart_config
         self.sample_value = sample_value
         self.object = None
         self.chart_object = None
@@ -81,7 +72,7 @@ class ConfigItem(object):
             return self.sample_value(clip, self.config)
         return self.sample_value
 
-    def get_clip(self, key, is_chart, gps_info, gpx_index, W, H):
+    def get_clip(self, key, gps_info, gpx_index, W, H):
         """Fully creates clip
 
         Gets data( self.get_data), runs function (self.func) and sets position
@@ -91,8 +82,6 @@ class ConfigItem(object):
         ---------
         key : str
             Config key (elvation, speed, etc.) What do we want
-        is_chart : bool
-            True if we want to draw chart from this or not
         gps_info : util.GPSData
             Data to draw
         gpx_index : int
@@ -108,21 +97,18 @@ class ConfigItem(object):
             Clip generated from data set on correct position or None if clip
             couldn't be created
         """
-        name = ""
-        if is_chart:
-            name = "chart_"
-        data = self.get_data(key, is_chart, gps_info, gpx_index)
+        data = self.get_data(key, gps_info, gpx_index)
         if data is None:
             return None
-        created_clip = getattr(self, name+"func")(data)
+        created_clip = self.func(data)
         if created_clip is None:
             return None
-        c = getattr(self, name+"position")(created_clip, W, H)
+        c = self.position(created_clip, W, H)
         return c
 
 
 
-    def get_data(self, key, is_chart, gps_info, gpx_index):
+    def get_data(self, key, gps_info, gpx_index):
         """Gets data for this key
 
         Parameters
@@ -141,13 +127,11 @@ class ConfigItem(object):
             gps_info[key] if is_chart is False. chart_object.make_chart_at if
             it is True
         """
-        if is_chart:
-            return self.chart_object.make_chart_at(gpx_index)
-        elif self.config is not None and "_run_func" in  self.config:
+        if self.config is not None and "_run_func" in  self.config:
             func_name, config = self.config["_run_func"]
             #print (func_name, self.object)
             func_name = getattr(self.object, func_name)
-
+#TODO: This should be done at init
 #FIXME: make this better
             gps_info["angle"] = gps_info["bearing"]
             object_vars = locals()
@@ -243,12 +227,8 @@ class ConfigItem(object):
         bool
             True if initialization is needed
         """
-        class_init = False
         if self.config is not None:
-            class_init = "class" in self.config
-        if self.chart_config is not None:
-            return class_init or "class" in self.chart_config
-        return class_init
+            return "class" in self.config
 
 
     def init(self, object_vars):
@@ -269,10 +249,40 @@ class ConfigItem(object):
                 print ("ARGS:", args)
                 return config["class"](**args)
         self.object = init_class(self.config)
-        self.chart_object = init_class(self.chart_config)
 
 
     def __repr__(self):
         s=("{} set: {}".format(key, value!=None) for key, value in
                 vars(self).items())
         return ", ".join(s)
+
+    @property
+    def config_type(self):
+        return "S"
+
+class ChartConfigItem(ConfigItem):
+    """Config for chart overlay
+
+    Basically the same as ConfigItem only config_type is different.
+
+    Parameters
+    ---------
+    func : function
+        No idea FIXME
+    position : function
+        Input parameter is created clip made with previous function and width
+        and height of full image. Output is Clip set to wanted position
+    config : dict
+        Specific needed settings for complex overlays (map and charts for now)
+    sample_value 
+        Sample input value that func can create valid Clip (Used for testing
+        clip locations)
+    """
+    def __init__(self, func=None, position=None,
+            config=None, sample_value=None):
+        super().__init__(func, position, config, sample_value)
+
+    @property
+    def config_type(self):
+        return "C"
+
