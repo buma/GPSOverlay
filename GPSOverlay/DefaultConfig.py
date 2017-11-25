@@ -3,7 +3,7 @@ from moviepy.video.VideoClip import ImageClip, ColorClip, VideoClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.tools.drawing import circle, color_gradient
 from .util.Position import Position
-from .util.ConfigItem import ConfigItem, ChartConfigItem
+from .util.ConfigItem import ConfigItem, ChartConfigItem, GaugeConfigItem
 from .util import find_font
 from TextClipPIL import TextClipPIL
 
@@ -248,6 +248,13 @@ class DefaultConfig(object):
             config["gpx_data"] = "__gpx_data"
         func = self._if_set(func, lambda c: c)
         ci = ChartConfigItem(position=position,
+                config=config, func=func)
+        self.config[key].append(ci)
+
+    def make_gauge_config(self, key, position, config, func=None):
+        config["_run_func"][1]["value"]="__gps_info:" + key
+        func = self._if_set(func, lambda c: c)
+        ci = GaugeConfigItem(position=position,
                 config=config, func=func)
         self.config[key].append(ci)
 

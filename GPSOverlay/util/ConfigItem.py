@@ -152,6 +152,7 @@ class ConfigItem(object):
                 #print ("POS ARGS:", pos_args)
                 return func_name(*pos_args, **args)
             else:
+                #print ("Calling {} with {}".format(func_name, args))
                 return func_name(**args)
         return gps_info[key]
 
@@ -172,6 +173,10 @@ class ConfigItem(object):
         If config value starts with `__` it is transformed to the value of this
         variable in GPXDataSequence. For example `__gpx_file` is transformed to
         `/home/user/gpx.gpx` if that is the input of GPXDataSequence.
+        If it also contains : value after : is the key since variable is
+        assumed to be dictionary. For example __gps_info:speed is transformed
+        to the speed key in gps_info dictionary.
+
 
         If key contains size and value is tuple `w` will be converted to picture
         width and `h` to picture height.
@@ -189,8 +194,16 @@ class ConfigItem(object):
         """
         if isinstance(value, str) and value.startswith("__"):
             strip_value = value.lstrip("_")
+            if ":" in strip_value:
+                strip_value, strip_key = strip_value.split(":")
+            else:
+                strip_key = None
             if strip_value in object_vars:
-                return object_vars[strip_value]
+                read_value = object_vars[strip_value]
+                if strip_key is not None:
+                    return read_value[strip_key]
+                else:
+                    return read_value
         elif "size" in key:
             if isinstance(value, tuple):
                 out_tuple = []
@@ -285,4 +298,30 @@ class ChartConfigItem(ConfigItem):
     @property
     def config_type(self):
         return "C"
+
+class GaugeConfigItem(ConfigItem):
+    """Config for chart overlay
+
+    Basically the same as ConfigItem only config_type is different.
+
+    Parameters
+    ---------
+    func : function
+        No idea FIXME
+    position : function
+        Input parameter is created clip made with previous function and width
+        and height of full image. Output is Clip set to wanted position
+    config : dict
+        Specific needed settings for complex overlays (map and charts for now)
+    sample_value 
+        Sample input value that func can create valid Clip (Used for testing
+        clip locations)
+    """
+    def __init__(self, func=None, position=None,
+            config=None, sample_value=None):
+        super().__init__(func, position, config, sample_value)
+
+    @property
+    def config_type(self):
+        return "G"
 
