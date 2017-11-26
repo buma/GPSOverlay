@@ -63,6 +63,8 @@ class MapnikRenderer(object):
 
     Project input latitude and latitude to spherical mercator
     """
+    # spherical mercator (most common target map projection of osm data imported with osm2pgsql)
+    mercator_projection = mapnik.Projection('+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over')
 # can also be constructed as:
 #longlat = mapnik.Projection('+init=epsg:4326')
 
@@ -280,7 +282,7 @@ class MapnikRenderer(object):
 
         if angle is None:
 # spherical mercator (most common target map projection of osm data imported with osm2pgsql)
-            merc = mapnik.Projection('+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over')
+            merc = self.mercator_projection
         else:
 #Map rotation https://gis.stackexchange.com/questions/183175/rotating-90-using-two-point-equidistant-projection-with-proj4
             merc = mapnik.Projection('+proj=aeqd +ellps=sphere +lat_0=90 +lon_0=-' +
