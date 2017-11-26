@@ -288,41 +288,6 @@ class MapnikRenderer(object):
             merc = mapnik.Projection('+proj=aeqd +ellps=sphere +lat_0=90 +lon_0=-' +
                     str(angle+angle_offset))
 
-#Layer with current location:
-#TODO add drawing current point
-            if False:
-
-                gs = ('{ "type":"FeatureCollection", "features": [ {' +
-                            '"type":"Feature", "properties":{"name":"current"},'+
-                                '"geometry": { "type":"Point",' +
-                            '"coordinates":[%f, %f]}}]}' %(lon, lat))
-                ds = mapnik.Datasource(
-                        type='geojson',
-                        inline=gs
-                        )
-                #point = None
-                for layer in self.m.layers:
-                    if layer.name == "current_point":
-                        point = layer
-                        point.active=False
-                        break
-                point = mapnik.Layer('current_point')
-                point.datasource = ds
-                point.styles.append('GPS_tracking_points')
-                self.m.layers.append(point)
-                #if point is None:
-                    #new=True
-                    #point = mapnik.Layer('current_point')
-                #else:
-                    #new = False
-                #point.datasource = ds
-                #if new:
-                    #point.styles.append('GPS_tracking_points')
-                    #self.m.layers.append(point)
-                #mapnik.save_map(self.m, "file.xml")
-                #for layer in self.m.layers:
-                    #print (layer.name)
-
 # ensure the target map projection is mercator
         self.m.srs = merc.params()
 
