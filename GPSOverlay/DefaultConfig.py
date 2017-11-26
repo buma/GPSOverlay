@@ -411,11 +411,13 @@ class DefaultConfig(object):
     def make_map_clip(self, map_clip_coordinate):
         map_clip, center_coordinate = map_clip_coordinate
         #We composite it on map image to get current location point
-#TODO: make circle once and just compose it in currently it is very wasteful
+        radius=8
         map_w = map_clip.w
         map_h = map_clip.h
-        circle_clip = ImageClip(circle((map_w, map_h), (map_w/2, map_h/2), 8,
+        circle_clip = ImageClip(circle((2*radius, 2*radius), (radius, radius), radius,
             (0,255,0), (0,0,0)))
+        circle_clip = circle_clip.set_pos((center_coordinate[0]-radius,
+            center_coordinate[1]-radius))
 #Make mask from it (channel 1 - green) since it's single color
         circle_mask = circle_clip.to_mask(1)
 #And use it as a mask
