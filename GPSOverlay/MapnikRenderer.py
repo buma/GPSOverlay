@@ -258,25 +258,15 @@ class MapnikRenderer(object):
 
         Returns
         -------
-        moviepy.video.VideoClip.ImageClip
-            Rendered image as clip
+        moviepy.video.VideoClip.ImageClip, tuple
+            Rendered image as clip, and tuple with x and y coordinate of center
+            in pixel units. (Used to add point on current location)
 
 
         """
         map_uri = None
         width = self.map_width if img_width is None else img_width
         height = self.map_height if img_height is None else img_height
-        #print ("img_width: {} map_width:{} width:{}".format(img_width, self.map_width, width))
-        if self.maps_cache is not None:
-            fn = self._make_name(lat, lon, width,
-                height)
-            map_uri = os.path.join(self.maps_cache, "{}.png".format(fn))
-#If we don't want to overwrite and file already exists skip map rendering
-            if not overwrite and os.path.isfile(map_uri):
-                return ImageClip(map_uri)
-#If we want to overwrite and file exists we remove file
-            if overwrite and os.path.isfile(map_uri):
-                os.remove(map_uri)
         if zoom is None:
             zoom = self.map_zoom
 
@@ -316,6 +306,21 @@ class MapnikRenderer(object):
 # Note: aspect_fix_mode is only available in Mapnik >= 0.6.0
         self.m.zoom_to_box(bounds)
 
+        center_pixel_coord = self.m.view_transform().forward(merc_centre)
+        #print ("img_width: {} map_width:{} width:{}".format(img_width, self.map_width, width))
+        if self.maps_cache is not None:
+            fn = self._make_name(lat, lon, width,
+                height)
+            #print ("Rendering " + fn)
+            map_uri = os.path.join(self.maps_cache, "{}.png".format(fn))
+#If we don't want to overwrite and file already exists skip map rendering
+            if not overwrite and os.path.isfile(map_uri):
+                return ImageClip(map_uri), (center_pixel_coord.x,
+                        center_pixel_coord.y)
+#If we want to overwrite and file exists we remove file
+            if overwrite and os.path.isfile(map_uri):
+                os.remove(map_uri)
+
 
         #start = time.process_time()
         if self.maps_cache is not None:
@@ -341,7 +346,8 @@ class MapnikRenderer(object):
             self.m.resize(self.map_width, self.map_height)
 
         #print ("render took %r s" % (time.process_time()-start,))
-        return ImageClip(map_data)
+        return ImageClip(map_data), (center_pixel_coord.x,
+                center_pixel_coord.y)
     if False:
 # Print stats
         print("Stats:")

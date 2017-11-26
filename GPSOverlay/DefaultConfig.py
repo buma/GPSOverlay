@@ -395,7 +395,8 @@ class DefaultConfig(object):
 
 
 
-    def make_transparent_map_clip(self, map_clip):
+    def make_transparent_map_clip(self, map_clip_coordinate):
+        map_clip, center_coordinate = map_clip_coordinate
         map_w = map_clip.w
         map_h = map_clip.h
 #Makes radial mask which is used to blur map as a circle with transparent
@@ -405,9 +406,10 @@ class DefaultConfig(object):
         map_mask_clip = ImageClip(map_mask, ismask=True)
         map_clip = map_clip.set_mask(map_mask_clip)
         map_clip = map_clip.set_opacity(0.7)
-        return self.make_map_clip(map_clip)
+        return self.make_map_clip((map_clip, center_coordinate))
 
-    def make_map_clip(self, map_clip):
+    def make_map_clip(self, map_clip_coordinate):
+        map_clip, center_coordinate = map_clip_coordinate
         #We composite it on map image to get current location point
 #TODO: make circle once and just compose it in currently it is very wasteful
         map_w = map_clip.w
