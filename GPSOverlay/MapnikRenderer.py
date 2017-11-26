@@ -93,6 +93,10 @@ class MapnikRenderer(object):
 
         self.map_width = map_w
         self.map_height = map_h
+        if map_zoom is None:
+            self.zoom_changeable = True
+        else:
+            self.zoom_changeable = False
         self.map_zoom = map_zoom
         self.maps_cache=maps_cache
         self.mapnik_style_file = mapfile
@@ -192,7 +196,7 @@ class MapnikRenderer(object):
             #print (layer.name)
 
     @staticmethod
-    def _make_name(lat, lon, width=None, height=None):
+    def _make_name(lat, lon, width=None, height=None, zoom=None):
         """Generates name based on lat, lon width and height
 
         Name is lat_lon rounded to 5 decimal places after multipled by 10^5
@@ -220,9 +224,14 @@ class MapnikRenderer(object):
         round_lon = round(lon*10**5)
         latlon= "{}_{}".format(round_lat, round_lon)
         if width and height:
-            return latlon + "_{}_{}".format(width,height)
+            name = latlon + "_{}_{}".format(width,height)
         else:
-            return latlon
+            name = latlon
+        if zoom:
+            round_zoom = int(round(zoom*10**5))
+            return name + "_Z{}".format(round_zoom)
+        else:
+            return name
 
     def render_map(self, lat, lon, angle=None, angle_offset=0, zoom=None,
             overwrite=False, img_width=None, img_height=None):
@@ -268,6 +277,8 @@ class MapnikRenderer(object):
         width = self.map_width if img_width is None else img_width
         height = self.map_height if img_height is None else img_height
         if zoom is None:
+            if self.map_zoom is None:
+                raise Exception("One of map_zoom or zoom needs to be set!")
             zoom = self.map_zoom
 
         if angle is None:
@@ -309,8 +320,9 @@ class MapnikRenderer(object):
         center_pixel_coord = self.m.view_transform().forward(merc_centre)
         #print ("img_width: {} map_width:{} width:{}".format(img_width, self.map_width, width))
         if self.maps_cache is not None:
+            zoom_name = zoom if self.zoom_changeable else None
             fn = self._make_name(lat, lon, width,
-                height)
+                height, zoom_name)
             #print ("Rendering " + fn)
             map_uri = os.path.join(self.maps_cache, "{}.png".format(fn))
 #If we don't want to overwrite and file already exists skip map rendering
@@ -363,13 +375,15 @@ class MapnikMultiProcessRenderer(multiprocessing.Process):
 
     def __init__(self, task_queue, result_queue, map_width, map_height,
             gpx_file=None, zoom=18, maps_cache = "./.map_cache",
-            mapfile="/home/mabu/Documents/MapBox/project/openstreetmap-carto1/openstreetmap-carto.xml"):
+            mapfile=None):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
         self.result_queue = result_queue
         self.zoom = zoom
         self.maps_cache = maps_cache
-        self.renderer = MapnikRenderer(map_width, map_height, gpx_file, mapfile)
+        self.renderer = MapnikRenderer(map_width, map_height, gpx_file=gpx_file,
+                map_zoom=zoom,
+                mapfile=mapfile, maps_cache=maps_cache)
         self.cnt_times = 0
         self.cnt_items = 0
 
