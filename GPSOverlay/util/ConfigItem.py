@@ -1,4 +1,5 @@
 import inspect
+from util import BreakType
 
 class ConfigItem(object):
     """Config for one overlay
@@ -36,6 +37,9 @@ class ConfigItem(object):
     position : function
         Input parameter is created clip made with previous function and width
         and height of full image. Output is Clip set to wanted position
+    position_break_func :function
+        Input parameters for function that is called when there are breaks
+        FIXME: doc
     config : dict
         Specific needed settings for complex overlays (map and charts for now)
     sample_value 
@@ -49,9 +53,10 @@ class ConfigItem(object):
 
     """
     def __init__(self, func=None, position=None, config=None,
-            sample_value=None):
+            sample_value=None, position_break_func=None):
         self.func = func
         self.position = position
+        self.position_break_func = position_break_func
         self.config = config
         self.sample_value = sample_value
         self.object = None
@@ -72,7 +77,8 @@ class ConfigItem(object):
             return self.sample_value(clip, self.config)
         return self.sample_value
 
-    def get_clip(self, key, gps_info, gpx_index, W, H):
+    def get_clip(self, key, gps_info, gpx_index, W, H, break_type=BreakType.NO,
+            end_break_time=None, time_in_break=None):
         """Fully creates clip
 
         Gets data( self.get_data), runs function (self.func) and sets position
@@ -90,6 +96,10 @@ class ConfigItem(object):
             Width of full picture
         H : int
             Height of full picture
+        break_type : util.BreakType
+            Type of break (Start, middle, End)
+        end_break_time : int
+            Number of seconds
 
         Returns
         ------
@@ -97,18 +107,25 @@ class ConfigItem(object):
             Clip generated from data set on correct position or None if clip
             couldn't be created
         """
-        data = self.get_data(key, gps_info, gpx_index)
+        data = self.get_data(key, gps_info, gpx_index, break_type,
+                end_break_time, time_in_break, W, H)
         if data is None:
             return None
         created_clip = self.func(data)
         if created_clip is None:
             return None
-        c = self.position(created_clip, W, H)
+        if break_type != BreakType.NO and self.config is not None \
+            and self.config.get("_support_breaks", False):
+            c = self.position_break_func(self.position,
+                    created_clip, W, H, break_type, end_break_time)
+        else:
+            c = self.position(created_clip, W, H)
         return c
 
 
 
-    def get_data(self, key, gps_info, gpx_index):
+    def get_data(self, key, gps_info, gpx_index, break_type, end_break_time,
+            time_in_break, W, H):
         """Gets data for this key
 
         Parameters
@@ -137,6 +154,19 @@ class ConfigItem(object):
             object_vars = locals()
             args = {k:self._magic_value(k, v, object_vars) \
                     for k,v in config.items() if self._is_argument(k) }
+            #FIXME: This is ugly as hell
+#If there is a break currently and this config supports breaks
+            if break_type != BreakType.NO and self.config.get("_support_breaks", False):
+#We get break function
+                width_f, height_f = self.config["_break_func"](
+                        (self.config["map_w"], self.config["map_h"]),
+                        (W, H),
+                        break_type, end_break_time)
+#And add the arguments
+                args["img_width"] = int(round(width_f(time_in_break)))
+                args["img_height"] = int(round(height_f(time_in_break)))
+                #print ("WxH: {}x{}".format(args["img_width"], args["img_height"]))
+
             if "_DICT" in config:
                 our_dict = object_vars[config["_DICT"]]
                 #print (func_name, config, args)

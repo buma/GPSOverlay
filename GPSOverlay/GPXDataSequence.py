@@ -88,15 +88,13 @@ class GPXDataSequence(VideoClip):
     def __init__(self, clip, gpx_file=None, time_offset=0,
             interval=0, speedup_factor=1, clip_start_time=None, config=None):
 
-#How long in seconds is zoom out/in of map in long breaks
-        self.effect_length = 3
         self.clip = clip
         duration = clip.duration
 #Finds breaks in image sequences (Break is when we have GPS information but no
         #images at that time
 #FIXME: find breaks with GPS and images not just durations
         if isinstance(clip, ImageSequenceClip):
-            self.have_any_breaks = any((duration > (self.effect_length*2+2) for duration in
+            self.have_any_breaks = any((duration > (config.effect_length*2+2) for duration in
                 self.clip.durations))
             self.gpx_data = GPXData(sequence=self.clip.sequence,
                     gpx_file=gpx_file)
@@ -139,139 +137,27 @@ class GPXDataSequence(VideoClip):
         f = self.clip.make_frame(t)
         index = self.find_image_index(t)
         time_start = t*self.speedup_factor
-        break_video, end_break_time = self.find_break(index, t)
+        break_video, end_break_time = self.find_break(index, t,
+                self.config.effect_length)
         gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
         gps_info = gps_info._asdict()
         #print (gps_info, self.data_clips)
 # For each wanted datafield make clip and set position
         for key, key_config in self.config.make_items():
             c = key_config.get_clip(key, gps_info, gpx_index, self.w,
-                    self.h)
+                    self.h, break_video, end_break_time,
+                    t-self.images_starts[index])
             if c is None:
                 continue
             #print (key, "==", c.pos(t), c.w, c.h)
+            #c.show(t, interactive=True)
             #print ("key %s %s, Rendering took %r s" % (key,
                 #break_video.name, time.time()-start_key,))
             f = c.blit_on(f, t)
         #print ("%f, %s, Rendering took %r s" % (t, break_video.name, time.time()-start,))
         return f
 
-
-    #@profile
-    def make_OLD_frame(self, t):
-        #start = time.time()
-        f = self.clip.make_frame(t)
-        index = self.find_image_index(t)
-        time_start = t*self.speedup_factor
-        break_video, end_break_time = self.find_break(index, t)
-        gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
-        gps_info = gps_info._asdict()
-        #print (gps_info, self.data_clips)
-# For each wanted datafield make clip and set position
-        for key, clip in self.data_clips.items():
-            #start_key = time.time()
-            if key.endswith("_chart"):
-                nkey = key.replace("_chart", "")
-                value = gps_info[nkey]
-                if nkey not in self.chart_data:
-                    self.chart_data[nkey] = ChartMaker(self.gpx_data, nkey,
-                            (self.size[0], 100))
-                data = self.chart_data[nkey].make_chart_at(gpx_index)
-            elif key == 'map':
-#makes new image only every 3 indexes
-                #k = index//3
-                #calc_index = 3*k
-                #print ("index, k, calc", index, k, calc_index)
-                if break_video != BreakType.NO:
-                    #Middle of break. Image always full screen
-                    if break_video == BreakType.MIDDLE:
-                        width = self.w
-                        height = self.h
-                    elif break_video == BreakType.START:
-#Start of break. Zooms image from original size to full screen
-                        xes = (0,self.effect_length)
-                        f_width = make_func(xes, (self.clip_configs["map"]["map_w"],
-                            self.w))
-                        f_height = make_func(xes, (self.clip_configs["map"]["map_h"],
-                            self.h))
-                    elif break_video == BreakType.END:
-#End of a break. Zooms out image from full screen to original size
-                        xes = (end_break_time-self.effect_length,end_break_time)
-                        f_width = make_func(xes, (self.w,
-                            self.clip_configs["map"]["map_w"]))
-                        f_height = make_func(xes, (self.h,
-                            self.clip_configs["map"]["map_h"]))
-                    if break_video == BreakType.START or break_video == \
-                        BreakType.END:
-                        width = \
-                                int(round(f_width(t-self.images_starts[index])))
-                        height = \
-                                int(round(f_height(t-self.images_starts[index])))
-                        #print ("WxH: {}x{}".format(width, height))
-
-                    gpx_name = self.make_name(gps_info, width=width,
-                            height=height)
-                    data = self._get_map_image(gpx_name, gps_info['lat'],
-                            gps_info['lon'], gps_info['bearing'],
-                            width=width, height=height)
-                else:
-                    gpx_name = self.make_name(gps_info)
-                    data = self._get_map_image(gpx_name, gps_info['lat'],
-                            gps_info['lon'], gps_info['bearing'])
-            else:
-                data = gps_info[key]
-
-            if data is None:
-                continue
-            created_clip = clip(data)
-            if created_clip is None:
-                continue
-            if break_video == BreakType.MIDDLE and key == "map":
-                c = created_clip
-                c.set_pos(0,0)
-            elif key == "map" and break_video == BreakType.START:
-                c = self.data_pos[key+"_pos"](created_clip,
-                        self.w, self.h)
-                x_y_start = c.pos(t)
-                #print ("Coords:", x_y_start)
-#Start of break. Moves map from original position to top left
-                xes = (0,self.effect_length)
-                f_x = make_func(xes, (x_y_start[0], 0))
-                f_y = make_func(xes, (x_y_start[1], 0))
-                #print ("Should have pos:", (f_x(t-c.start), f_y(t-c.start)))
-                c = c.set_pos(lambda z: (f_x(z), f_y(z)))
-            elif key == "map" and break_video == BreakType.END:
-                #End of a break. Moves map from top left to original
-                #position
-                c = self.data_pos[key+"_pos"](created_clip,
-                        self.w, self.h)
-                x_y_end = c.pos(t)
-                #print ("Coords:", x_y_end)
-                xes = (end_break_time-self.effect_length,end_break_time)
-                #print ("Xes:", xes)
-                f_x = make_func(xes, (0, x_y_end[0]))
-                f_y = make_func(xes, (0, x_y_end[1]))
-                #print ("Should have pos:", (f_x(t-c.start), f_y(t-c.start)))
-                #print ("Left size:", (self.w-f_x(t-c.start), self.h-f_y(t-c.start)))
-                c = c.set_pos(lambda z: (f_x(z), f_y(z)))
-            else:
-                c = self.data_pos[key+"_pos"](created_clip,
-                        self.w, self.h)
-            #if key == "map":
-                #print (c.pos(t))
-                #c.set_pos(lambda z: print("time:", z))
-                #print ("Blit on:", t-c.start, c.end)
-            #print (key, "==", c.pos(t), c.w, c.h)
-            #Replacing f with c if the sizes are the same doesn't speed up
-            #the code
-            #print ("key %s %s, Rendering took %r s" % (key,
-                #break_video.name, time.time()-start_key,))
-            f = c.blit_on(f, t)
-        #print ("%f, %s, Rendering took %r s" % (t, break_video.name, time.time()-start,))
-        return f
-
-
-    def find_break(self, index,  t):
+    def find_break(self, index,  t, effect_length):
         """Checks if current image is in a break
 
         and which part of a break. Start, Middle or End
@@ -283,11 +169,11 @@ class GPXDataSequence(VideoClip):
             next_image_start = self.images_starts[index+1]*self.speedup_factor
             is_break = self.gpx_data.is_break(index,
                 self.images_starts[index]*self.speedup_factor,
-                    next_image_start, self.effect_length,
+                    next_image_start, effect_length,
                     self.speedup_factor)
             if is_break:
-                is_start_break = t-self.images_starts[index] <= self.effect_length
-                is_end_break = self.images_starts[index+1]-t <= self.effect_length
+                is_start_break = t-self.images_starts[index] <= effect_length
+                is_end_break = self.images_starts[index+1]-t <= effect_length
                 if is_start_break:
                     #print ("BREAK: Start break")
                     break_video = BreakType.START

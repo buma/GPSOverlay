@@ -4,7 +4,7 @@ from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.tools.drawing import circle, color_gradient
 from .util.Position import Position
 from .util.ConfigItem import ConfigItem, ChartConfigItem, GaugeConfigItem
-from .util import find_font
+from .util import find_font, BreakType, make_func
 from TextClipPIL import TextClipPIL
 
 from collections import defaultdict
@@ -29,18 +29,21 @@ class DefaultConfig(object):
         padding
     margin : int
         Margin between overlays
+    effect_length : int
+        Length of zoom/in out effect in seconds
 
     """
 
     def __init__(self, default_font=find_font("Bitstream Vera Sans:bold:mono"),
             normal_font_size=30, large_font_size=40,
             padding=Position.make([40,30,0]),
-            margin=10):
+            margin=10, effect_length=3):
         self.default_font = default_font
         self.normal_font_size = normal_font_size
         self.large_font_size = large_font_size
         self.padding = padding
         self.margin = margin
+        self.effect_length = effect_length
         self.config = defaultdict(list)
 
     def config_items(self, need_config=False):
@@ -202,6 +205,7 @@ class DefaultConfig(object):
     def make_map_config(self, map_width=250, map_height=250,
             map_zoom=16, map_mapfile=None, gpx_style=None,
             gpx_file=True, func=None, position=None, maps_cache=None,
+            support_breaks=False, position_break_func=None
             ):
         try:
             from .MapnikRenderer import MapnikRenderer
@@ -220,6 +224,8 @@ class DefaultConfig(object):
                 "gpx_style": gpx_style,
                 "gpx_file":"__gpx_file", #If true path to gpx file will be added when
                 "maps_cache":maps_cache,
+                "_support_breaks":support_breaks,
+                "_break_func": self._get_interpolation_functions,
                 #class is initialized
                 "_run_func":("render_map", {
                     "_DICT": "gps_info",
@@ -227,19 +233,118 @@ class DefaultConfig(object):
                     "angle_offset": -10,
                     })
                 }
+        no_break_position_func = self._if_set(position, lambda t, W,H: t.set_pos((W-t.w-self.padding.right,
+                H-t.h-100)))
+        if support_breaks:
+            break_position_func = self._if_set(position_break_func,
+                self.map_position_func)
+        else:
+            break_position_func = None
+
         self.config["map"].append( ConfigItem(
                 func= self._if_set(func, self.make_map_clip),
                 # center
                 #'map_pos': lambda t, W,H:
                 #t.set_pos((W/2-t.w-self.padding.right,
                 #H-t.h-100)),
+                position=no_break_position_func,
                 #right bottom
-                position=self._if_set(position, lambda t, W,H: t.set_pos((W-t.w-self.padding.right,
-                    H-t.h-100))),
                 config=map_config,
                 sample_value= lambda clip, config:ColorClip((config["map_w"],
-                    config["map_h"]), [125,35,0])
+                    config["map_h"]), [125,35,0]),
+                position_break_func=break_position_func
                 ))
+
+    def _get_interpolation_functions(self, start_value, end_value, break_type,
+            end_break_time=None):
+        """Makes interpolation functions which interpolates from start_value to
+        end value in Break.START
+
+        Parameters
+        ---------
+        start_value : 2 value tuple 
+            Which are start values when break starts (usually default position
+            or default width/height)
+        end_value : 2 value tuple
+            Which are end values when break stops (usually 0,0 for position and
+            full picture width, height for size)
+        break_type : util.BreakType
+            For which break should we create functions. It makes sense only for
+            START and END since MIDDLE and NO always returns the same values
+            END break type interpolates from end_value to start_value.
+        end_break_time : int
+            What is the end of a break in seconds (used to calculate how long
+            should the effect last)
+
+        For example:
+            if you want to interpolate from position (100,10) to (0,0)
+            you should call _get_interpolation_functions((100, 10), (0,0),
+            BreakType.START)
+            you should call _get_interpolation_functions((100, 10), (0,0),
+            BreakType.END, 145)
+
+        It also works for Breaktype.NO when it returns functions that always
+        return first and second values of start_value and Breaktype.MIDDLE that
+        does the same for end_value.
+
+        Returns
+        ------
+            Two functions one for first tuple value which interpolates in
+            self.effect_length from first_tuple value in start_value to first
+            tuple value in end_value same for second function. 
+        """
+        if break_type == BreakType.NO:
+            return lambda x: start_value[0], lambda y: start_value[1]
+        elif break_type == BreakType.MIDDLE:
+            return lambda x: end_value[0], lambda y: end_value[1]
+        elif break_type == BreakType.START or break_type == BreakType.END:
+            if break_type == BreakType.END:
+                tmp = start_value
+                start_value = end_value
+                end_value = tmp
+                move_duration = (end_break_time-self.effect_length,end_break_time)
+            else:
+                move_duration = (0, self.effect_length)
+            x_pos_move = (start_value[0], end_value[0])
+            y_pos_move = (start_value[1], end_value[1])
+            f_x = make_func(move_duration, x_pos_move)
+            f_y = make_func(move_duration, y_pos_move)
+            return f_x, f_y
+
+    def map_position_func(self, position_func, clip, W, H, break_type, end_break_time):
+        #print ("CLIP:", clip, "FUNC:", position_func)
+        if break_type == BreakType.MIDDLE:
+            return clip.set_pos((0,0))
+        clip = position_func(clip, W, H)
+        if break_type == BreakType.NO:
+            return clip
+        if break_type == BreakType.START or break_type == BreakType.END:
+#Position of clip without breaks, since this is at start this will be origin
+            #position
+            x_y_start_position = clip.pos(0)
+            x_y_end_position = (0,0)
+            f_x, f_y = self._get_interpolation_functions(x_y_start_position,
+                    x_y_end_position, break_type, end_break_time)
+            return clip.set_pos(lambda z: (f_x(z), f_y(z)))
+        #if break_type == BreakType.START:
+##Position of clip without breaks, since this is at start this will be origin
+            ##position
+            #x_y_start_position = clip.pos(t)
+##Move clip from first parameter to second parameter on x and y axis
+            #x_pos_move = (x_y_start_position[0], 0)
+            #y_pos_move = (x_y_start_position[1], 0)
+##In time from first parameter to second parameter
+            #move_duration = (0, self.effect_length)
+        #elif break_type == BreakType.END:
+            #x_y_end_position = clip.pos(t)
+            #move_duration = (end_break_time-self.effect_length,end_break_time)
+            #x_pos_move = (0, x_y_end_position[0])
+            #y_pos_move = (0, x_y_end_position[1])
+        ##Makes function that interpolates from x_pos_move first param to second
+        ##in time_start to time_end
+        #f_x = make_func(move_duration, x_pos_move)
+        #f_y = make_func(move_duration, y_pos_move)
+        
 
     def make_chart_config(self, key, position, config, func=None):
         if "wanted_value" not in config:
