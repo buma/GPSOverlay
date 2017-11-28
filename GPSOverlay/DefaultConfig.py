@@ -326,24 +326,6 @@ class DefaultConfig(object):
             f_x, f_y = self._get_interpolation_functions(x_y_start_position,
                     x_y_end_position, break_type, end_break_time)
             return clip.set_pos(lambda z: (f_x(z), f_y(z)))
-        #if break_type == BreakType.START:
-##Position of clip without breaks, since this is at start this will be origin
-            ##position
-            #x_y_start_position = clip.pos(t)
-##Move clip from first parameter to second parameter on x and y axis
-            #x_pos_move = (x_y_start_position[0], 0)
-            #y_pos_move = (x_y_start_position[1], 0)
-##In time from first parameter to second parameter
-            #move_duration = (0, self.effect_length)
-        #elif break_type == BreakType.END:
-            #x_y_end_position = clip.pos(t)
-            #move_duration = (end_break_time-self.effect_length,end_break_time)
-            #x_pos_move = (0, x_y_end_position[0])
-            #y_pos_move = (0, x_y_end_position[1])
-        ##Makes function that interpolates from x_pos_move first param to second
-        ##in time_start to time_end
-        #f_x = make_func(move_duration, x_pos_move)
-        #f_y = make_func(move_duration, y_pos_move)
         
 
     def make_chart_config(self, key, position, config, func=None):
