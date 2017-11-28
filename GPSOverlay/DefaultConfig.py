@@ -98,7 +98,6 @@ class DefaultConfig(object):
         self.make_heart_config()
         self.make_bearing_config()
         self.make_speed_config()
-        self.make_map_config()
 
     def default_position(self, how_many_configs):
         """Function calculates default position based on how many configs
