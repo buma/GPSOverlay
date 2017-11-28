@@ -239,7 +239,7 @@ class DefaultConfig(object):
                 self.map_position_func)
         else:
             break_position_func = None
-        self.circle, self.radius = self._make_circle(8)
+        self.circle, self.radius = self._make_circle(8, (0,255,0))
 
         self.config["map"].append( ConfigItem(
                 func= self._if_set(func, self.make_map_clip),
@@ -391,9 +391,9 @@ class DefaultConfig(object):
         return self.make_map_clip((map_clip, center_coordinate))
 
     @staticmethod
-    def _make_circle(radius):
+    def _make_circle(radius, color=(0,255,0)):
         circle_clip = ImageClip(circle((2*radius, 2*radius), (radius, radius), radius,
-            (0,255,0), (0,0,0)))
+            color, (0,0,0)))
 #Make mask from it (channel 1 - green) since it's single color
         circle_mask = circle_clip.to_mask(1)
 #And use it as a mask
