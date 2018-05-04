@@ -1,4 +1,3 @@
-import numpy as np
 from moviepy.video.VideoClip import VideoClip, ImageClip, TextClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.editor import concatenate_videoclips
@@ -120,16 +119,12 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
         tc = tc.set_pos(("center", "bottom"))
         #print (clip.size, tc.size)
         #TODO: makes transparent bar size same size (based on highest caption)
-        #TODO: make bar with on_color https://zulko.github.io/moviepy/examples/ukulele_concerto.html
         #adds 75% transparent bar under the caption
-        mask = np.ones((clip.size[1], clip.size[0]), 'float')
         #Bar starts 5 pixels above caption and ends at the bottom
-        start_mask = clip.size[1]-tc.size[1]-5
-
-        mask[start_mask:, :] = 0.75
-        mask_clip = ImageClip(mask, ismask=True)
-        clip.mask = mask_clip
-        conc_clips.append(CompositeVideoClip([clip, tc]).set_duration(clip.duration))
+        tc_col = tc.on_color(size=(clip.w,tc.h+5),
+                color=(0,0,0), pos=('center'), col_opacity=0.6)
+        tc_with_color = tc_col.set_pos(('center', 'bottom'))
+        conc_clips.append(CompositeVideoClip([clip, tc_with_color]).set_duration(clip.duration))
     if test:
         for clip in conc_clips:
             clip.show(0, interactive=True)
