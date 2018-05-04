@@ -114,17 +114,18 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
     conc_clips = []
     for clip, text in zip(clips, titles):
         #TODO: make text caption style configurable
-        tc = TextClip(text, clip.size, method="caption", align="South",
+        text_caption = TextClip(text, clip.size, method="caption", align="South",
                 color="white", fontsize=30, font="M+-1p-medium")
-        tc = tc.set_pos(("center", "bottom"))
+        text_caption = text_caption.set_pos(("center", "bottom"))
         #print (clip.size, tc.size)
         #TODO: makes transparent bar size same size (based on highest caption)
-        #adds 75% transparent bar under the caption
+        #adds 60% transparent bar under the caption
         #Bar starts 5 pixels above caption and ends at the bottom
-        tc_col = tc.on_color(size=(clip.w,tc.h+5),
+        text_caption_bar = text_caption.on_color(size=(clip.w, text_caption.h+5),
                 color=(0,0,0), pos=('center'), col_opacity=0.6)
-        tc_with_color = tc_col.set_pos(('center', 'bottom'))
-        conc_clips.append(CompositeVideoClip([clip, tc_with_color]).set_duration(clip.duration))
+        text_caption_with_bar = text_caption_bar.set_pos(('center', 'bottom'))
+        conc_clips.append(CompositeVideoClip([clip, text_caption_with_bar]) \
+                .set_duration(clip.duration))
     if test:
         for clip in conc_clips:
             clip.show(0, interactive=True)
