@@ -72,7 +72,8 @@ def panorama(clip, screensize, duration=None, speed=None):
     return scrolled
 
 def make_image_slideshow(sequence, titles, height=None, width=None, image_duration=4,
-        transition_duration=1, zoom_images=False, test=False):
+        transition_duration=1, fontsize=30, font="M+-1p-medium",
+        font_color="white", zoom_images=False, test=False):
     """Function makes slideshow VideoClip from sequence of images with their
     captions
     
@@ -90,6 +91,14 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
         How long is one image visible
     transition_duration
         How long is fade transition between images
+    fontsize
+        Font point size
+    font
+        Name of the font to use. See ``TextClip.list('font')`` for
+      the list of fonts you can use on your computer.
+    font_color
+        Color of the text. See ``TextClip.list('color')`` for a
+      list of acceptable names.
     test : bool
         If true shows each image with caption in preview
 
@@ -115,7 +124,7 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
     for clip, text in zip(clips, titles):
         #TODO: make text caption style configurable
         text_caption = TextClip(text, clip.size, method="caption", align="South",
-                color="white", fontsize=30, font="M+-1p-medium")
+                color=font_color, fontsize=fontsize, font=font)
         text_caption = text_caption.set_pos(("center", "bottom"))
         #print (clip.size, tc.size)
         #TODO: makes transparent bar size same size (based on highest caption)
