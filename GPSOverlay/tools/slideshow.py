@@ -71,6 +71,11 @@ def panorama(clip, screensize, duration=None, speed=None):
     scrolled = scroll(clip, w=width, x_speed=speed)
     return scrolled
 
+def image_effect(clip, screensize, duration=None, speed=None):
+    if clip.w/clip.h > 2:
+        return panorama(clip, screensize, duration, speed)
+    return zoom(clip, screensize)
+
 def make_image_slideshow(sequence, titles, height=None, width=None, image_duration=4,
         transition_duration=1, fontsize=30, font="M+-1p-medium",
         font_color="white", zoom_images=False, test=False):
@@ -112,14 +117,14 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
     to be the same"
     if height is None and width is None:
         clips = (ImageClip(image, duration=image_duration) \
-                for image in sorted(images))
+                for image in images)
     else:
         if zoom_images:
             clips = (ImageClip(image, duration=image_duration) \
-                    .fx(zoom, screensize=(width, height)) for image in sorted(images))
+                    .fx(image_effect, screensize=(width, height), duration=20) for image in images)
         else:
             clips = (ImageClip(image, duration=image_duration) \
-                    .fx(resize, height=height, width=width) for image in sorted(images))
+                    .fx(resize, height=height, width=width) for image in images)
     conc_clips = []
     for clip, text in zip(clips, titles):
         #TODO: make text caption style configurable
