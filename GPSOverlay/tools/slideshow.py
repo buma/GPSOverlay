@@ -128,7 +128,11 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
     conc_clips = []
     for clip, text in zip(clips, titles):
         #TODO: make text caption style configurable
-        text_caption = TextClip(text, clip.size, method="caption", align="South",
+        if width is None:
+            text_space_size = None
+        else:
+            text_space_size = (width, 40)
+        text_caption = TextClip(text, size=text_space_size, method="caption", align="South",
                 color=font_color, fontsize=fontsize, font=font)
         text_caption = text_caption.set_pos(("center", "bottom"))
         #print (clip.size, tc.size)
