@@ -100,7 +100,7 @@ class GPXData(object):
         try:
             exif = EXIF(filename)
             geo_data = exif.extract_geo()
-            if self.gpx_data:
+            if self is not None and self.gpx_data:
                 offset_time = self.gpx_data[-1].offset
             else:
                 offset_time = 0
@@ -112,7 +112,7 @@ class GPXData(object):
             bearing = exif.extract_direction()
             speed = None
             slope = None
-            if self.gpx_data:
+            if self is not None and self.gpx_data:
                 last = self.gpx_data[-1]
                 seconds = (t-last.datetime).total_seconds()
                 length = geo.distance(last.lat, last.lon, last.elevation, lat,
