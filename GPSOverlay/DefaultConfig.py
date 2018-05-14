@@ -5,7 +5,7 @@ from moviepy.video.tools.drawing import circle, color_gradient
 from .util.Position import Position
 from .util.ConfigItem import ConfigItem, ChartConfigItem, GaugeConfigItem
 from .util import find_font, BreakType, make_func
-from TextClipPIL import TextClipPIL
+from .TextClipPIL import TextClipPIL
 
 from collections import defaultdict
 

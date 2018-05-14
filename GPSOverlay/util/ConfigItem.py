@@ -1,5 +1,5 @@
 import inspect
-from util import BreakType
+from . import BreakType
 
 class ConfigItem(object):
     """Config for one overlay
