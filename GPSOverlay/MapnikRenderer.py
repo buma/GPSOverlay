@@ -196,7 +196,8 @@ class MapnikRenderer(object):
             #print (layer.name)
 
     @staticmethod
-    def _make_name(lat, lon, width=None, height=None, zoom=None):
+    def _make_name(lat, lon, width=None, height=None, zoom=None,
+            zoom_to_layer=False):
         """Generates name based on lat, lon width and height
 
         Name is lat_lon rounded to 5 decimal places after multipled by 10^5
@@ -212,6 +213,11 @@ class MapnikRenderer(object):
             Wanted width of the map
         height : int
             Wanted height of the map
+        zoom : float
+            map zoom
+        zoom_to_layer : bool
+            If true map shows whole layer and lat,lon, zoom are actually
+            ignored
 
 
         Returns
@@ -229,12 +235,14 @@ class MapnikRenderer(object):
             name = latlon
         if zoom:
             round_zoom = int(round(zoom*10**5))
-            return name + "_Z{}".format(round_zoom)
-        else:
-            return name
+            name += "_Z{}".format(round_zoom)
+        if zoom_to_layer:
+            name += "_ZTL_Y"
+        return name
 
     def render_map(self, lat, lon, angle=None, angle_offset=0, zoom=None,
-            overwrite=False, img_width=None, img_height=None):
+            overwrite=False, img_width=None, img_height=None,
+            zoom_to_layer=False, layer_padding=10):
         """Renders map with help of mapnik
 
         If maps_cache is used it is first checked if image already exists in
@@ -264,6 +272,11 @@ class MapnikRenderer(object):
             If we want different size of map then what was set in constructor
         img_height : int
             If we want different size of map then what was set in constructor
+        zoom_to_layer: bool
+            If true it shows whole gpx layer in a map. lat, lon, zoom, angle are
+            ignored
+        layer_padding: int
+            How much padding to add between edges of layer and image
 
         Returns
         -------
@@ -300,29 +313,46 @@ class MapnikRenderer(object):
         if img_width is not None and img_height is not None:
             self.m.resize(width, height)
 
+        if not zoom_to_layer:
 # 360/(2**zoom) degrees = 256 px
 # so in merc 1px = (20037508.34*2) / (256 * 2**zoom)
 # hence to find the bounds of our rectangle in projected coordinates + and - half the image width worth of projected coord units
-        dx = ((20037508.34*2*(width/2)))/(256*(2 ** (zoom)))
-        minx = merc_centre.x - dx
-        maxx = merc_centre.x + dx
-
+            dx = ((20037508.34*2*(width/2)))/(256*(2 ** (zoom)))
+            minx = merc_centre.x - dx
+            maxx = merc_centre.x + dx
 # grow the height bbox, as we only accurately set the width bbox
-        self.m.aspect_fix_mode = mapnik.aspect_fix_mode.ADJUST_BBOX_HEIGHT
-
-        bounds = mapnik.Box2d(minx, merc_centre.y-10, maxx, merc_centre.y+10) # the y bounds will be fixed by mapnik due to ADJUST_BBOX_HEIGHT
+            self.m.aspect_fix_mode = mapnik.aspect_fix_mode.ADJUST_BBOX_HEIGHT
+            bounds = mapnik.Box2d(minx, merc_centre.y-10, maxx, merc_centre.y+10) # the y bounds will be fixed by mapnik due to ADJUST_BBOX_HEIGHT
+        else:
+            names = ["gpx"]
+            ppmm = 90.7 / 25.4
+            self.m.aspect_fix_mode = mapnik.aspect_fix_mode.GROW_BBOX
+            #Next for loop is from Zverik/Nik4 app
+            #Calculate extent of given layers and bbox
+            for layer in (l for l in self.m.layers if l.name in names):
+                # it may as well be a GPX layer in WGS84
+                proj = mapnik.Projection(layer.srs)
+                bbox = layer.envelope() \
+                        .inverse(proj).forward(self.mercator_projection)
+                tscale = min((bbox.maxx - bbox.minx) / max(width, 0.01),
+                             (bbox.maxy - bbox.miny) / max(height, 0.01))
+                bbox.pad(layer_padding * ppmm * tscale)
+                bounds = bbox
 
 
 
 # Note: aspect_fix_mode is only available in Mapnik >= 0.6.0
         self.m.zoom_to_box(bounds)
 
-        center_pixel_coord = self.m.view_transform().forward(merc_centre)
+        if not zoom_to_layer:
+            center_pixel_coord = self.m.view_transform().forward(merc_centre)
+        else:
+            center_pixel_coord = merc_centre
         #print ("img_width: {} map_width:{} width:{}".format(img_width, self.map_width, width))
         if self.maps_cache is not None:
             zoom_name = zoom if self.zoom_changeable else None
             fn = self._make_name(lat, lon, width,
-                height, zoom_name)
+                height, zoom_name, zoom_to_layer)
             #print ("Rendering " + fn)
             map_uri = os.path.join(self.maps_cache, "{}.png".format(fn))
 #If we don't want to overwrite and file already exists skip map rendering
