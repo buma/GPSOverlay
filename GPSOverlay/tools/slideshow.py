@@ -125,6 +125,7 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
     #TODO: list of clip effects (so that panoramas can be panorama or specific
     #panorama)
     #TODO: support folder as a sequence
+    image_duration+=transition_duration*2
     images = sequence
     assert len(images) == len(titles), "Number of images and titles needs \
     to be the same"
