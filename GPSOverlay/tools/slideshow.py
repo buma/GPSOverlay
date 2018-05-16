@@ -43,7 +43,7 @@ def zoom(clip, screensize):
     return vid
 
 
-def panorama(clip, screensize, duration=None, speed=None):
+def panorama(clip, screensize, duration=None, speed=None, freeze_duration=1.5):
     """Makes image panorama of large images
 
     It pans image from left to right since they are very wide
@@ -61,6 +61,8 @@ def panorama(clip, screensize, duration=None, speed=None):
         If given wanted duration of pan
     speed
         Number of pixel of move per time unit (duration is calculated)
+    freeze_duration : float
+        Number of seconds to freeze before scroll and at the end
     """
 
     #TODO: pause image at start and/or end for some time
@@ -78,8 +80,10 @@ def panorama(clip, screensize, duration=None, speed=None):
         speed = (clip.w-width)/duration
 
     scrolled = scroll(clip, w=width, x_speed=speed)
-    return scrolled
-
+    return concatenate_videoclips([scrolled.to_ImageClip(0).set_duration(freeze_duration),
+        scrolled,
+        scrolled.to_ImageClip(scrolled.duration).set_duration(freeze_duration)])
+ 
 def image_effect(clip, screensize, duration=None, speed=None):
     if clip.w/clip.h > 2:
         return panorama(clip, screensize, duration, speed)
