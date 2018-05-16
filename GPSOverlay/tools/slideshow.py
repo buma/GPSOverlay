@@ -21,12 +21,21 @@ def zoom(clip, screensize):
     ------
     VideoClip in desired size
     """
-    clip_resized = (clip.fx(resize, height=screensize[1]*2)
-                .fx(resize, lambda t : 1+0.02*t)
-                .set_position(('center', 'center'))
-                )
-    clip_composited = CompositeVideoClip([clip_resized]) \
-            .fx(resize, width=screensize[0])
+    #We need to resize high imageč differently
+    if clip.h > clip.w:
+        clip_resized = (clip.fx(resize, width=screensize[0]*2)
+                    .fx(resize, lambda t : 1+0.02*t)
+                    .set_position(('center', 'center'))
+                    )
+        clip_composited = CompositeVideoClip([clip_resized]) \
+                .fx(resize, height=screensize[1])
+    else:
+        clip_resized = (clip.fx(resize, height=screensize[1]*2)
+                    .fx(resize, lambda t : 1+0.02*t)
+                    .set_position(('center', 'center'))
+                    )
+        clip_composited = CompositeVideoClip([clip_resized]) \
+                .fx(resize, width=screensize[0])
 
 
     vid = CompositeVideoClip([clip_composited.set_position(('center', 'center'))], 
