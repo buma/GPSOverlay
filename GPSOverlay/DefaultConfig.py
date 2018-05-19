@@ -351,15 +351,16 @@ class DefaultConfig(object):
                 f = ColorClip((1333,1000), [56, 14,252]).make_frame(0)
             else:
                 f = ImageClip(image).make_frame(0)
-            for key, key_config in self.config.make_items():
+            for key, key_config in self.make_items():
                 data = key_config.sample(f)
-                print ("data:", data)
+                #print ("data:", data)
                 if data is None:
                     continue
-                created_clip = ci.func(data)
+                #print (key, key_config)
+                created_clip =key_config.func(data)
                 if created_clip is None:
                     continue
-                c = ci.position(created_clip, f.shape[1], f.shape[0])
+                c = key_config.position(created_clip, f.shape[1], f.shape[0])
                 f = c.blit_on(f, 0)
             return f
         return VideoClip(make_frame, duration=1)
