@@ -73,24 +73,13 @@ class MapnikRenderer(object):
             gpx_style=None,
             map_zoom=18,
             mapfile=None,
-            maps_cache=None):
-        #start = time.process_time()
-        self.m = mapnik.Map(map_w, map_h)
-        #print ("Mapnik took %r s" % (time.process_time()-start,))
-        #start = time.process_time()
-        if mapfile is None:
-            self.m.background = mapnik.Color('rgb(0,0,0,0)') #transparent
-        else:
-            mapnik.load_map(self.m, mapfile)
-        #print ("loadint took %r s" % (time.process_time()-start,))
-# Create a symbolizer to draw the points
-        #if "openstreetmap-carto" in mapfile:
+            maps_cache=None, no_lazy_load=False):
 
 
-        self.draw_gpx_track(gpx_file, gpx_style)
-
-
-
+        self.m = None
+        self.mapfile = mapfile
+        self.gpx_style = gpx_style
+        self.gpx_file = gpx_file
         self.map_width = map_w
         self.map_height = map_h
         if map_zoom is None:
@@ -103,6 +92,29 @@ class MapnikRenderer(object):
 
         if self.maps_cache is not None:
             self._save_cache()
+
+        else:
+            self._lazy_init_map()
+
+        if no_lazy_load:
+            self._lazy_init_map()
+
+    def _lazy_init_map(self):
+        if self.m is None:
+            #start = time.process_time()
+            self.m = mapnik.Map(self.map_width, self.map_height)
+            #print ("Mapnik took %r s" % (time.process_time()-start,))
+            #start = time.process_time()
+            if self.mapfile is None:
+                self.m.background = mapnik.Color('rgb(0,0,0,0)') #transparent
+            else:
+                mapnik.load_map(self.m, self.mapfile)
+            #print ("loadint took %r s" % (time.process_time()-start,))
+# Create a symbolizer to draw the points
+            #if "openstreetmap-carto" in mapfile:
+
+
+            self.draw_gpx_track(self.gpx_file, self.gpx_style)
 
     def _save_cache(self):
         """Saved options for map generation to cache
@@ -147,6 +159,7 @@ class MapnikRenderer(object):
         This doesn't work for some reason. Style is added and if mapnik XML is
         saved and read it is used.
         """
+        self._lazy_init_map()
         style = mapnik.Style()
         style.filter_mode=mapnik.filter_mode.FIRST
         rule = mapnik.Rule()
@@ -301,7 +314,7 @@ class MapnikRenderer(object):
 #Map rotation https://gis.stackexchange.com/questions/183175/rotating-90-using-two-point-equidistant-projection-with-proj4
             merc = mapnik.Projection('+proj=aeqd +ellps=sphere +lat_0=90 +lon_0=-' +
                     str(angle+angle_offset))
-
+        self._lazy_init_map()
 # ensure the target map projection is mercator
         self.m.srs = merc.params()
 
