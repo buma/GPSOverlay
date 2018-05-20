@@ -4,6 +4,10 @@ import multiprocessing
 from io import BytesIO
 
 from moviepy.video.VideoClip import ImageClip
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+
+from .util import format_filename
+from .DefaultConfig import DefaultConfig
 from PIL import Image as ImagePIL
 import numpy as np
 try:
@@ -11,6 +15,29 @@ try:
 except:
     import mapnik
 
+
+circle, radius = DefaultConfig._make_circle(8, (0,255,0))
+def make_gpx_track_view(width, height, gpx_file=None, gpx_style=None, mapfile=None, 
+        maps_cache=None, font_path=None, layer_padding=10, lat=45, lon=15,
+        render_point=False):
+    #TODO at given point location render something to show start
+    map_renderer = MapnikRenderer(map_w=width, map_h=height, gpx_file=gpx_file,
+            gpx_style=gpx_style, mapfile=mapfile, maps_cache=maps_cache,
+            font_path=font_path)
+    map_clip, center_coordinate = map_renderer.render_map(lat, lon, zoom_to_layer=True,
+            layer_padding=layer_padding)
+    if render_point:
+        #We composite it on map image to get current location point
+        map_w = map_clip.w
+        map_h = map_clip.h
+        circle_clip = circle
+        circle_clip = circle_clip.set_pos((center_coordinate[0]-radius,
+            center_coordinate[1]-radius))
+#We get circle on transparent background
+        both = CompositeVideoClip([map_clip, circle_clip])
+        return both
+    else:
+        return map_clip
 
 
 #https://github.com/kevinstadler/southup
@@ -361,10 +388,7 @@ class MapnikRenderer(object):
 # Note: aspect_fix_mode is only available in Mapnik >= 0.6.0
         self.m.zoom_to_box(bounds)
 
-        if not zoom_to_layer:
-            center_pixel_coord = self.m.view_transform().forward(merc_centre)
-        else:
-            center_pixel_coord = merc_centre
+        center_pixel_coord = self.m.view_transform().forward(merc_centre)
         #print ("img_width: {} map_width:{} width:{}".format(img_width, self.map_width, width))
         if self.maps_cache is not None:
             zoom_name = zoom if self.zoom_changeable else None
