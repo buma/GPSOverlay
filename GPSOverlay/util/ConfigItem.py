@@ -255,6 +255,8 @@ class ConfigItem(object):
                         out_tuple.append(val)
                 if found_string:
                     return tuple(out_tuple)
+                else:
+                    return value
         else:
             return value
 
