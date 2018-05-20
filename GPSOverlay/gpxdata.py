@@ -144,11 +144,13 @@ class GPXData(object):
             #return idx
 
 
-    def _get_geo_from_exif(self, filename):
+    def get_geo_from_exif(self, filename, time_offset=0):
         try:
             geo_data, exif_time, bearing = exif_fields(filename)
             if self is not None and self.gpx_data:
                 offset_time = self.gpx_data[-1].offset
+            elif self is None:
+                offset_time = time_offset
             else:
                 offset_time = 0
             t = exif_time - \
@@ -165,7 +167,7 @@ class GPXData(object):
                         lon, elevation)
                 speed = length / float(seconds)
                 slope = round((elevation-last.elevation)/length*100)
-            return GPSData(lat, lon, bearing, elevation, speed, None, None,
+            return GPSData(lat, lon, bearing, elevation, speed, None, t,
                     None, slope, None)
         except ValueError as e:
             print("Skipping {0}: {1}".format(filename, e))
@@ -177,7 +179,7 @@ class GPXData(object):
     def _add_exif_using_timestamp(self, filename, file_creation_time, points,
             given_offset_time=0, offset_bearing=0):
         try:
-            geo_exif = self._get_geo_from_exif(filename)
+            geo_exif = self.get_geo_from_exif(filename)
             lat_exif = round(geo_exif.lat, 5)
             lon_exif = round(geo_exif.lon, 5)
             found_diff = False
