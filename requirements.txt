@@ -14,6 +14,8 @@ pyparsing==2.2.0
 six==1.10.0
 tqdm==4.11.2
 ExifRead==2.1.2
+#Make optional
+joblib==0.11
 #Optional
 #map
 #mapnik==0.1

@@ -7,6 +7,54 @@ from gpxpy import geo
 import exifread
 from .lib.exif import EXIF
 from .util import make_offsets, GPSData
+from . import exif_fields, memory
+
+#FIXME: why are we reading images twice, first in estimate sub second time and
+#then in get_geo
+
+
+@memory.cache
+def _estimate_sub_second_time(files, interval):
+    '''
+    Estimate the capture time of a sequence with sub-second precision
+
+    EXIF times are only given up to a second of precission. This function
+    uses the given interval between shots to Estimate the time inside that
+    second that each picture was taken.
+
+    If interval is 0 it just returns list of datetimes which are
+        DateTimeOriginal from EXIF of given files
+    '''
+    def exif_time(filename):
+        img = open(filename, 'rb')
+        tags = exifread.process_file(img, details=False,
+                stop_tag="EXIF DateTimeOriginal")
+        dt_str = tags["EXIF DateTimeOriginal"]
+        #print (dt_str)
+        dt = datetime.datetime.strptime(str(dt_str), "%Y:%m:%d %H:%M:%S")
+        return dt
+
+    if interval <= 0.0:
+        return [exif_time(f) for f in files]
+
+    onesecond = datetime.timedelta(seconds=1.0)
+    T = datetime.timedelta(seconds=interval)
+    for i, f in enumerate(files):
+        m = exif_time(f)
+        if i == 0:
+            smin = m
+            smax = m + onesecond
+        else:
+            m0 = m - T * i
+            smin = max(smin, m0)
+            smax = min(smax, m0 + onesecond)
+
+    if smin > smax:
+        print('Interval not compatible with EXIF times')
+        return None
+    else:
+        s = smin + (smax - smin) / 2
+        return [s + T * i for i in range(len(files))]
 
 class GPXData(object):
     def __init__(self, sequence=None, gpx_file=None, time_offset=0, interval=0,
@@ -23,7 +71,7 @@ class GPXData(object):
             self.gpx = None
         if sequence is not None:
 # Estimate capture time with sub-second precision
-            image_creation_times = self._estimate_sub_second_time(sequence, interval)
+            image_creation_times = _estimate_sub_second_time(sequence, interval)
             if not image_creation_times:
                 sys.exit(1)
             #For each image in sequence based on imagecreation time and gpx file time offset
@@ -98,18 +146,16 @@ class GPXData(object):
 
     def _get_geo_from_exif(self, filename):
         try:
-            exif = EXIF(filename)
-            geo_data = exif.extract_geo()
+            geo_data, exif_time, bearing = exif_fields(filename)
             if self is not None and self.gpx_data:
                 offset_time = self.gpx_data[-1].offset
             else:
                 offset_time = 0
-            t = exif.extract_capture_time() - \
+            t = exif_time - \
                 datetime.timedelta(seconds=offset_time)
             lat = geo_data["latitude"]
             lon = geo_data["longitude"]
             elevation = geo_data["altitude"]
-            bearing = exif.extract_direction()
             speed = None
             slope = None
             if self is not None and self.gpx_data:
@@ -163,44 +209,3 @@ class GPXData(object):
         except ValueError as e:
             print("Skipping {0}: {1}".format(filename, e))
 
-    def _estimate_sub_second_time(self, files, interval):
-        '''
-        Estimate the capture time of a sequence with sub-second precision
-
-        EXIF times are only given up to a second of precission. This function
-        uses the given interval between shots to Estimate the time inside that
-        second that each picture was taken.
-
-	If interval is 0 it just returns list of datetimes which are
-	 DateTimeOriginal from EXIF of given files
-        '''
-        def exif_time(filename):
-            img = open(filename, 'rb')
-            tags = exifread.process_file(img, details=False,
-                    stop_tag="EXIF DateTimeOriginal")
-            dt_str = tags["EXIF DateTimeOriginal"]
-            #print (dt_str)
-            dt = datetime.datetime.strptime(str(dt_str), "%Y:%m:%d %H:%M:%S")
-            return dt
-
-        if interval <= 0.0:
-            return [exif_time(f) for f in files]
-
-        onesecond = datetime.timedelta(seconds=1.0)
-        T = datetime.timedelta(seconds=interval)
-        for i, f in enumerate(files):
-            m = exif_time(f)
-            if i == 0:
-                smin = m
-                smax = m + onesecond
-            else:
-                m0 = m - T * i
-                smin = max(smin, m0)
-                smax = min(smax, m0 + onesecond)
-
-        if smin > smax:
-            print('Interval not compatible with EXIF times')
-            return None
-        else:
-            s = smin + (smax - smin) / 2
-            return [s + T * i for i in range(len(files))]
