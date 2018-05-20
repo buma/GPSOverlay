@@ -80,6 +80,10 @@ class GPXDataSequence(VideoClip):
             ismask=False, load_images=False, gpx_file=None, time_offset=0,
             interval=0, speedup_factor=24, config=None):
 
+        if fps is not None:
+            #It needs to be wanted FPS*image taken interval?
+            speedup_factor=fps*3
+
         clip = ImageSequenceClipDelay(sequence, durations, with_mask, ismask,
                 load_images, speedup_factor)
         return cls(clip, gpx_file, time_offset, interval,
