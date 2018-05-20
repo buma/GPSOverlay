@@ -212,8 +212,7 @@ class MapnikRenderer(object):
         #for layer in self.m.layers:
             #print (layer.name)
 
-    @staticmethod
-    def _make_name(lat, lon, width=None, height=None, zoom=None,
+    def _make_name(self, lat, lon, width=None, height=None, zoom=None,
             zoom_to_layer=False):
         """Generates name based on lat, lon width and height
 
@@ -243,6 +242,9 @@ class MapnikRenderer(object):
             Filename
 
         """
+        if zoom_to_layer:
+            name = "LAYER_"+format_filename(self.gpx_file[-20:])
+            return name
         round_lat = round(lat*10**5)
         round_lon = round(lon*10**5)
         latlon= "{}_{}".format(round_lat, round_lon)
@@ -253,8 +255,6 @@ class MapnikRenderer(object):
         if zoom:
             round_zoom = int(round(zoom*10**5))
             name += "_Z{}".format(round_zoom)
-        if zoom_to_layer:
-            name += "_ZTL_Y"
         return name
 
     def render_map(self, lat, lon, angle=None, angle_offset=0, zoom=None,
