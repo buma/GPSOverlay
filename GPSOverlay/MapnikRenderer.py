@@ -73,7 +73,11 @@ class MapnikRenderer(object):
             gpx_style=None,
             map_zoom=18,
             mapfile=None,
-            maps_cache=None, no_lazy_load=False):
+            maps_cache=None, no_lazy_load=False,
+            font_path=None):
+
+        if font_path is not None:
+            mapnik.register_fonts(font_path)
 
 
         self.m = None

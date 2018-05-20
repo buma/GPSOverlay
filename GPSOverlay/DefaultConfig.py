@@ -203,7 +203,7 @@ class DefaultConfig(object):
 
     def make_map_config(self, map_width=250, map_height=250,
             map_zoom=16, map_mapfile=None, gpx_style=None,
-            gpx_file=True, func=None, position=None, maps_cache=None,
+            gpx_file=True, font_path=None, func=None, position=None, maps_cache=None,
             support_breaks=False, position_break_func=None
             ):
         try:
@@ -223,6 +223,7 @@ class DefaultConfig(object):
                 "gpx_style": gpx_style,
                 "gpx_file":"__gpx_file", #If true path to gpx file will be added when
                 "maps_cache":maps_cache,
+                "font_path":font_path,
                 "_support_breaks":support_breaks,
                 "_break_func": self._get_interpolation_functions,
                 #class is initialized
