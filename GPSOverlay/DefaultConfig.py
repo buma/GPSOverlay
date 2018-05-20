@@ -144,10 +144,10 @@ class DefaultConfig(object):
                 ))
 
     def make_elevation_config(self, func=None, position=None,
-            config=None, stroke_color=None): 
+            config=None, stroke_color=None, text="%4.2f m"): 
         how_many_configs = len(self.config.keys())
         self.config["elevation"].append( ConfigItem(
-                func = self._if_set(func, lambda alt: TextClipPIL("%4.2f m" % (alt,),
+            func = self._if_set(func, lambda alt: TextClipPIL(text % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position=self._if_set(position,
