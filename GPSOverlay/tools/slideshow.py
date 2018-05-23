@@ -1,3 +1,6 @@
+import os
+import types
+
 from moviepy.video.VideoClip import VideoClip, ImageClip, TextClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.editor import concatenate_videoclips
@@ -169,4 +172,19 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
                 #length
     final_clip = concatenate_videoclips(slided_clips,
             padding=-transition_duration, method="compose")
+
+    def dump(self):
+        ret_string = ["<slideshow>"]
+        ret_string.append("size:{}x{} transition:{}s fontsize:{} "
+                "font:{} font_color:{} zoom_images:{}".format(width, height,
+                    transition_duration, fontsize, font, font_color,
+                    zoom_images))
+        ret_string.append("Duration:{}s".format(final_clip.duration))
+        for image, title, clip in zip(sequence, titles, slided_clips):
+            ret_string.append("{2: 6.2f}s {0} {1}".format(
+                os.path.basename(image), title, clip.duration))
+        ret_string.append("</slideshow>")
+        return "\n".join(ret_string)
+
+    final_clip.dump = types.MethodType(dump, final_clip)
     return final_clip
