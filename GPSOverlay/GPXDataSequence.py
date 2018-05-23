@@ -3,6 +3,9 @@ import datetime
 import sys
 import collections
 import time
+import math
+import itertools
+from operator import itemgetter
 
 #from moviepy.video.VideoClip import VideoClip
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
@@ -12,6 +15,12 @@ from gpxpy import geo
 from .gpxdata import GPXData
 from .util import make_func, BreakType, GPSData
 from .ImageSequenceClipDelay import ImageSequenceClipDelay
+
+def unique_justseen(iterable, key=None):
+    "List unique elements, preserving order. Remember only the element just seen."
+    # unique_justseen('AAAABBBCCDAABBB') --> A B C D A B
+    # unique_justseen('ABBCcAD', str.lower) --> A B C A D
+    return map(next, map(itemgetter(1), itertools.groupby(iterable, key)))
 
 class GPXDataSequence(VideoClip):
     """
@@ -194,6 +203,44 @@ class GPXDataSequence(VideoClip):
                     #t-self.images_starts[index],
                     #self.images_starts[index+1]-t)
         return break_video, self.durations[index]
+
+    def __str__(self):
+        ret_string = ["<GPXDataSequence>"]
+        if self.gpx_file is not None:
+            ret_string.append("gpx_file:{}".format(self.gpx_file))
+        ret_string.append("speedup_factor:{}".format(self.speedup_factor))
+        ret_string.append("Duration:{}".format(datetime.timedelta(seconds=self.duration)))
+        ret_string.append("{}-{}".format(self.gpx_data.gpx_data[0].datetime,self.gpx_data.gpx_data[-1].datetime))
+        def get_breaks():
+            """Gets type of break for all the times in the clip
+            
+            Iterator returns time in seconds and break type"""
+            for t in range(math.floor(self.duration)):
+                index = self.find_image_index(t)
+                break_video, _ = self.find_break(index, t,
+                    self.config.effect_length)
+                yield (t, break_video)
+
+        #Show just brake changes
+        just_seen_breaks = unique_justseen(get_breaks(), itemgetter(1))
+
+        #Gets list of break durations and types
+        prev_break = None
+        for break_ in just_seen_breaks:
+            if prev_break is None:
+                prev_break = break_
+            else:
+                diff = break_[0]-prev_break[0]
+                ret_string.append("{}s {}".format(datetime.timedelta(seconds=diff), prev_break[1]))
+                prev_break = break_
+
+        #If at last time break wasn't changed we also need to return it
+        if prev_break[0] != math.floor(self.duration):
+            diff = math.floor(self.duration)-prev_break[0]
+            ret_string.append("{}s {}".format(datetime.timedelta(seconds=diff), prev_break[1]))
+
+        ret_string.append("</GPXDataSequence>")
+        return "\n".join(ret_string)
 
 
 
