@@ -152,6 +152,11 @@ class GPXDataSequence(VideoClip):
         time_start = t*self.speedup_factor
         break_video, end_break_time = self.find_break(index, t,
                 self.config.effect_length)
+        #kinda hackishly change image at break end so that end picture is shown
+        #not picture before the break
+        if break_video == BreakType.END:
+            f = self.clip.make_frame(self.clip.images_starts[index+1])
+
         gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
         gps_info = gps_info._asdict()
         #print (gps_info, self.data_clips)
