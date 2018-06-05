@@ -85,7 +85,8 @@ def panorama(clip, screensize, duration=None, speed=None, freeze_duration=1.5):
     scrolled = scroll(clip, w=width, x_speed=speed)
     return concatenate_videoclips([scrolled.to_ImageClip(0).set_duration(freeze_duration),
         scrolled,
-        scrolled.to_ImageClip(scrolled.duration).set_duration(freeze_duration)])
+        #FIXME: why is +1 actually needed without it there is no freeze at end
+        scrolled.to_ImageClip(scrolled.duration).set_duration(freeze_duration+1)])
  
 def image_effect(clip, screensize, duration=None, speed=None):
     if clip.w/clip.h > 2:
