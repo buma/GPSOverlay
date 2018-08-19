@@ -68,6 +68,7 @@ class TextClipPIL(ImageClip):
       ``True`` (default) if you want to take into account the
       transparency in the image.
     """
+    text_cache = {}
     def __init__(self, txt=None, filename=None, size=None, color='black',
                  bg_color='transparent', fontsize=None, font=None,
                  stroke_color=None, stroke_width=1, method='label',
@@ -89,7 +90,13 @@ class TextClipPIL(ImageClip):
         if font is None:
             font = ImageFont.load_default()
         else:
-            font = ImageFont.truetype(font, fontsize)
+            #Font cache
+            fs = (font, fontsize)
+            if fs in TextClipPIL.text_cache:
+                font = TextClipPIL.text_cache[fs]
+            else:
+                font = ImageFont.truetype(font, fontsize)
+                TextClipPIL.text_cache[fs] = font
 
     
         if size is None:
