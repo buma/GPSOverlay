@@ -39,6 +39,30 @@ def make_gpx_track_view(width, height, gpx_file=None, gpx_style=None, mapfile=No
     else:
         return map_clip
 
+def make_map_view(width, height, gpx_file=None, gpx_style=None, mapfile=None, 
+        maps_cache=None, font_path=None, layer_padding=10, lat=45, lon=15,
+        render_point=False, map_zoom=18):
+    #TODO at given point location render something to show start
+    map_renderer = MapnikRenderer(map_w=width, map_h=height, gpx_file=gpx_file,
+            gpx_style=gpx_style, mapfile=mapfile, maps_cache=maps_cache,
+            font_path=font_path)
+    map_clip, center_coordinate = map_renderer.render_map(lat, lon,
+            zoom_to_layer=False,
+            zoom=map_zoom,
+            layer_padding=layer_padding)
+    if render_point:
+        #We composite it on map image to get current location point
+        map_w = map_clip.w
+        map_h = map_clip.h
+        circle_clip = circle
+        circle_clip = circle_clip.set_pos((center_coordinate[0]-radius,
+            center_coordinate[1]-radius))
+#We get circle on transparent background
+        both = CompositeVideoClip([map_clip, circle_clip])
+        return both
+    else:
+        return map_clip
+
 
 #https://github.com/kevinstadler/southup
 
