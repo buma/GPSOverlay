@@ -250,7 +250,7 @@ class MapnikRenderer(object):
         if gpx_file is not None and gpx_style is not None:
 # Create a layer to hold GPX points
             print ("Adding GPX file")
-            layer = mapnik.Layer(gpx_style)
+            layer = mapnik.Layer("gpx")
             layer.datasource = mapnik.Ogr(file=gpx_file,
                     layer='tracks')
             layer.styles.append(gpx_style)
