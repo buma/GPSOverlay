@@ -1,4 +1,6 @@
 import datetime
+import locale
+
 from moviepy.video.VideoClip import ImageClip, ColorClip, VideoClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.tools.drawing import circle, color_gradient
@@ -38,6 +40,7 @@ class DefaultConfig(object):
             normal_font_size=30, large_font_size=40,
             padding=Position.make([40,30,0]),
             margin=10, effect_length=3):
+        locale.setlocale(locale.LC_TIME, '')
         self.default_font = default_font
         self.normal_font_size = normal_font_size
         self.large_font_size = large_font_size
@@ -141,11 +144,13 @@ class DefaultConfig(object):
         return default_value if input_value is None else input_value
 
     def make_datetime_config(self, func=None, position=None, stroke_color=None,
-            width=None):
+            width=None, strftime="%d.%m.%Y %H:%M:%S"):
         how_many_configs = len(self.config.keys())
         self.config["datetime"].append( ConfigItem(
-                func= self._if_set(func, lambda dt: TextClipPIL(dt.strftime("%d.%m.%Y %H:%M:%S"),
-                    fontsize=self.normal_font_size, font=self.default_font, color='white',
+                func= self._if_set(func, lambda dt: TextClipPIL(
+                    dt.strftime(strftime),
+                    fontsize=self.normal_font_size,
+                    font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position=self._if_set(position,
                     self.default_position(how_many_configs, width)),
