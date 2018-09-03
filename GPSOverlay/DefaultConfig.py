@@ -99,7 +99,7 @@ class DefaultConfig(object):
         self.make_bearing_config()
         self.make_speed_config()
 
-    def default_position(self, how_many_configs):
+    def default_position(self, how_many_configs, width=None):
         """Function calculates default position based on how many configs
         already exists
 
@@ -117,86 +117,96 @@ class DefaultConfig(object):
             How many configs already exists (Each config is element in
             self.config)
 
+        width : int
+            If it is None. Position is right aligned. If it is set to number it
+            is left aligned. Max width of clip needs to be specified
+
         Returns
         ------
         func
             PositionFunction (input is clip and full_clip width height, return
             is clip set at wanted position)
         """
-        return lambda t, W,H: t.set_pos((W-t.w-self.padding.right,
-            self.padding.top+how_many_configs*(self.normal_font_size+self.margin)))
-
+        if width is None:
+            return lambda t, W,H: t.set_pos((W-t.w-self.padding.right,
+                self.padding.top+how_many_configs*(self.normal_font_size+self.margin)))
+        else:
+            return lambda t, W,H: t.set_pos((W-width-self.padding.right,
+                self.padding.top+how_many_configs*(self.normal_font_size+self.margin)))
+    
     @staticmethod
     def _if_set(input_value, default_value):
         """If input_value is not None return it otherwise return
         default_value"""
         return default_value if input_value is None else input_value
 
-    def make_datetime_config(self, func=None, position=None, stroke_color=None):
+    def make_datetime_config(self, func=None, position=None, stroke_color=None,
+            width=None):
         how_many_configs = len(self.config.keys())
         self.config["datetime"].append( ConfigItem(
                 func= self._if_set(func, lambda dt: TextClipPIL(dt.strftime("%d.%m.%Y %H:%M:%S"),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position=self._if_set(position,
-                    self.default_position(how_many_configs)),
+                    self.default_position(how_many_configs, width)),
                 sample_value=datetime.datetime.now()
                 ))
 
     def make_elevation_config(self, func=None, position=None,
-            config=None, stroke_color=None, text="%4.2f m"): 
+            config=None, stroke_color=None, text="%4.2f m", width=None): 
         how_many_configs = len(self.config.keys())
         self.config["elevation"].append( ConfigItem(
             func = self._if_set(func, lambda alt: TextClipPIL(text % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position=self._if_set(position,
-                    self.default_position(how_many_configs)),
+                    self.default_position(how_many_configs, width)),
                 config = config,
                 sample_value=42.24
                 ))
     def make_heart_config(self, func=None, position=None,
-            config=None, stroke_color=None):
+            config=None, stroke_color=None, width=None):
         how_many_configs = len(self.config.keys())
         self.config["heart"].append( ConfigItem(
                 func = self._if_set(func, lambda alt: TextClipPIL("%d BPM" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='red',
             stroke_color=stroke_color)),
                 position=self._if_set(position,
-                    self.default_position(how_many_configs)),
+                    self.default_position(how_many_configs, width)),
                 config=config,
                 sample_value=133
                 ))
     def make_bearing_config(self, func=None, position=None,
-            config=None, stroke_color=None):
+            config=None, stroke_color=None, width=None):
         how_many_configs = len(self.config.keys())
         self.config["bearing"].append( ConfigItem(
                 func = self._if_set(func,  lambda alt: TextClipPIL("%3.1f °" % (alt,),
                     fontsize=self.normal_font_size, font=self.default_font, color='white',
                     stroke_color=stroke_color)),
                 position = self._if_set(position,
-                    self.default_position(how_many_configs)),
+                    self.default_position(how_many_configs, width)),
                 config=config,
                 sample_value=260
                 ))
     def make_speed_config(self, func=None, position=None,
-            config=None, stroke_color=None):
+            config=None, stroke_color=None, width=None):
         how_many_configs = len(self.config.keys())
         self.config["speed"].append( ConfigItem(
                 func = self._if_set(func, self.make_speed_clip),
-                position = self._if_set(position, self.default_position(how_many_configs)),
+                position = self._if_set(position,
+                    self.default_position(how_many_configs, width)),
                 config=config,
                 sample_value=15.6
                 ))
     def make_slope_config(self, func=None, position=None,
-            config=None, stroke_color=None):
+            config=None, stroke_color=None, width=None):
         how_many_configs = len(self.config.keys())
         self.config["slope"].append( ConfigItem(
                 func = self._if_set(func, lambda slope: TextClipPIL("%d %%" % (slope,),
             fontsize=self.normal_font_size, font=self.default_font, color='white',
             stroke_color=stroke_color)),
                 position = self._if_set(position,
-                    self.default_position(how_many_configs)),
+                    self.default_position(how_many_configs, width)),
                 config=config,
                 sample_value=-4.3
                 ))
