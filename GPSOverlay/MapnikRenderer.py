@@ -156,15 +156,15 @@ class MapnikRenderer(object):
 
     def _lazy_init_map(self):
         if self.m is None:
-            #start = time.process_time()
+            #start = time.perf_counter()
             self.m = mapnik.Map(self.map_width, self.map_height)
-            #print ("Mapnik took %r s" % (time.process_time()-start,))
-            #start = time.process_time()
+            #print ("Mapnik took %r s" % (time.perf_counter()-start,))
+            #start = time.perf_counter()
             if self.mapfile is None:
                 self.m.background = mapnik.Color('rgb(0,0,0,0)') #transparent
             else:
                 mapnik.load_map(self.m, self.mapfile)
-            #print ("loadint took %r s" % (time.process_time()-start,))
+            #print ("loadint took %r s" % (time.perf_counter()-start,))
 # Create a symbolizer to draw the points
             #if "openstreetmap-carto" in mapfile:
 
@@ -256,7 +256,7 @@ class MapnikRenderer(object):
             layer.styles.append(gpx_style)
             self.m.layers.append(layer)
             #print (self.m.layers)
-            #print ("symbolizer took %r s" % (time.process_time()-start,))
+            #print ("symbolizer took %r s" % (time.perf_counter()-start,))
             #mapnik.save_map(self.m,
                     #"/home/mabu/Documents/MapBox/project/openstreetmap-carto1/file.xml")
             #mapnik.save_map(self.m, "file.xml")
@@ -429,7 +429,7 @@ class MapnikRenderer(object):
                 os.remove(map_uri)
 
 
-        #start = time.process_time()
+        #start = time.perf_counter()
         if self.maps_cache is not None:
             mapnik.render_to_file(self.m, map_uri)
             map_data = map_uri
@@ -452,7 +452,7 @@ class MapnikRenderer(object):
         if img_width is not None and img_height is not None:
             self.m.resize(self.map_width, self.map_height)
 
-        #print ("render took %r s" % (time.process_time()-start,))
+        #print ("render took %r s" % (time.perf_counter()-start,))
         return ImageClip(map_data), (center_pixel_coord.x,
                 center_pixel_coord.y)
     if False:
