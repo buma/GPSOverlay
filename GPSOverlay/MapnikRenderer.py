@@ -469,16 +469,20 @@ class MapnikRenderer(object):
 class MapnikMultiProcessRenderer(multiprocessing.Process):
 
     def __init__(self, task_queue, result_queue, map_width, map_height,
-            gpx_file=None, zoom=18, maps_cache = "./.map_cache",
-            mapfile=None):
+            gpx_file=None, gpx_style=None, map_zoom=18, mapfile=None,
+            maps_cache = "./.map_cache", no_lazy_load=True,
+            angle_offset=0,
+            font_path=None):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
         self.result_queue = result_queue
-        self.zoom = zoom
         self.maps_cache = maps_cache
+        self.angle_offset = angle_offset
         self.renderer = MapnikRenderer(map_width, map_height, gpx_file=gpx_file,
-                map_zoom=zoom,
-                mapfile=mapfile, maps_cache=maps_cache)
+                gpx_style=gpx_style, map_zoom=map_zoom,
+                mapfile=mapfile, maps_cache=maps_cache,
+                no_lazy_load=no_lazy_load,
+                font_path=font_path)
         self.cnt_times = 0
         self.cnt_items = 0
 
@@ -503,12 +507,11 @@ class MapnikMultiProcessRenderer(multiprocessing.Process):
                 continue
             #print("%s GOT: %s" % (proc_name, next_task,))
             index, center_lat, center_lon, bearing = next_task
-            mapname = os.path.join(self.maps_cache, "{}.png".format(index))
             #print ("Map image: ", mapname)
             #print ("Got ", index, center_lat, center_lon, bearing, self.zoom)
             start = time. time()
             self.renderer.render_map(center_lat, center_lon, bearing,
-                    mapname, self.zoom)
+                    angle_offset=self.angle_offset)
             self.cnt_times+= time.time()-start
             self.cnt_items+=1
 
