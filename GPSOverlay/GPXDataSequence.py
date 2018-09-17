@@ -145,6 +145,53 @@ class GPXDataSequence(VideoClip):
                 print (key, "needs config")
                 key_config.init(vars(self))
 
+
+    def get_index(self, t):
+        index = self.find_image_index(t)
+        time_start = t*self.speedup_factor
+
+        gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
+        return gpx_index
+
+    def make_gpx(self, t, index=None):
+        """New way of adding GPX data to images
+
+        Now index is found to see which images are we showing and then time to
+        next image and real time difference to next image is found.
+        Then ratio of time from current time to first showing of image is
+        multiplied with real time to get GPX time between images.
+
+        This is then simplified so that we get ~ 5 different gpx data for 10
+        different points in one image
+
+        I'm not sure how that works with breaks
+
+        Also ImageSequenceClipDelay needs to be updates so that max time
+        distance between images is 10 or interval between images.
+
+
+        """
+        if index is None:
+            index = self.find_image_index(t)
+        time_cur = self.images_starts[index]
+        time_next = self.images_starts[index+1]
+        time_diff = time_next-time_cur
+        dt_diff = self.gpx_data.gpx_data[index+1].datetime-self.gpx_data.gpx_data[index].datetime
+        from_start = t-self.images_starts[index]
+
+        #This reduces number of maps from 1032 to 571 in 45 seconds of video
+        #aka 1132 frames
+        simplify = lambda x: round(round(x*10)+0.5)/10
+
+        gps_info, gpx_index = self.gpx_data.get_geo_at(index,
+                simplify(from_start/time_diff)*dt_diff.seconds,
+                from_index=True)
+        #print ("FROM_START:{} td:{} dt:{} rat:{} rat1:{} add:{}".format(from_start, time_diff,
+            #dt_diff.seconds, from_start/time_diff,
+            #simplify(from_start/time_diff),
+            #simplify(from_start/time_diff)*dt_diff.seconds))
+        return gps_info, gpx_index
+
     def make_frame(self, t):
         #start = time.time()
         f = self.clip.make_frame(t)
@@ -157,7 +204,13 @@ class GPXDataSequence(VideoClip):
         if break_video == BreakType.END:
             f = self.clip.make_frame(self.clip.images_starts[index+1])
 
-        gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
+
+        #Prev
+        #gps_info, gpx_index = self.gpx_data.get_geo_at(index, time_start)
+        gps_info, gpx_index = self.make_gpx(t, index)
+        #print ("GPS INFO, index:", gps_info, gpx_index, t, from_start,
+                #from_start/time_diff)
+        #print ("FROM START",from_start)
         gps_info = gps_info._asdict()
         #print (gps_info, self.data_clips)
 # For each wanted datafield make clip and set position

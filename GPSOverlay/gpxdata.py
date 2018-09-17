@@ -118,7 +118,8 @@ class GPXData(object):
 
         return (next_image_start-seconds_from_start)/speedup_factor > (2*effect_length+2) and  distance > 10
 
-    def get_geo_at(self, index, seconds_from_start, return_index=False):
+    def get_geo_at(self, index, seconds_from_start, return_index=False,
+            from_index=False):
         """Gets geo information based on time from start"""
 #FIXME: should this be global offset_time
         if index is None:
@@ -128,9 +129,18 @@ class GPXData(object):
             offset_time = self.gpx_data[index].offset
         if offset_time is None:
             offset_time = 0
+        offset_time = 0
         offset_bearing = 0
+        if from_index:
+            t =  self.gpx_data[index].datetime + \
+                    datetime.timedelta(seconds=seconds_from_start-offset_time)
+            #print ("TT:", t)
+
+        else:
 #Offset needs to be substracted that we get same point as it was in image
-        t = self.gpx_start_time+datetime.timedelta(seconds=seconds_from_start-offset_time)
+            t = self.gpx_start_time+datetime.timedelta(seconds=seconds_from_start-offset_time)
+        #print ("Getting geo at:{} {}, {} {}".format(t, seconds_from_start,
+            #offset_time, self.gpx_start_time))
         lat, lon, bearing, elevation, speed, heart, idx = \
                 interpolate_lat_lon(self.gpx, t)
         #if not return_index:
