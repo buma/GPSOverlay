@@ -8,6 +8,8 @@ from moviepy.video.fx.resize import resize
 from moviepy.video.fx.scroll import scroll
 import moviepy.video.compositing.transitions as transfx
 
+from ..SVGImageClip import SVGImageClip
+
 def zoom(clip, screensize):
     """Zooms preferably image clip for clip duration a little
 
@@ -146,21 +148,56 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
     conc_clips = []
     for clip, text in zip(clips, titles):
         #TODO: make text caption style configurable
+        #Swimming changes text color to light blue, moves text up and resized
+        #it
+        #It also adds black stroke that's why resizing is needed
+        #And adds icon of swimming on the bottom
+        if text.startswith("KOP:"):
+            text = text[4:]
+            font_color_c="#00aaff"
+            pos = "top"
+            swimm = True
+            stroke_color="black"
+            factor=2
+            mult=1.4*factor
+        else:
+            font_color_c = font_color
+            pos = "bottom"
+            swimm = False
+            stroke_color = None
+            mult=1
+            factor=1
         if width is None:
             text_space_size = None
         else:
-            text_space_size = (width, 40)
-        text_caption = TextClip(text, size=text_space_size, method="caption", align="South",
-                color=font_color, fontsize=fontsize, font=font)
-        text_caption = text_caption.set_pos(("center", "bottom"))
+            text_space_size = (width*factor, 40*factor)
+        text_caption = TextClip(text, size=text_space_size, method="caption",
+                align="center",
+                color=font_color_c, fontsize=fontsize*mult, font=font,
+                stroke_color=stroke_color)
+        if swimm:
+            text_caption = text_caption.fx(resize, height=text_caption.h/2)
+        text_caption = text_caption.set_pos(("center", "center"))
         #print (clip.size, tc.size)
         #TODO: makes transparent bar size same size (based on highest caption)
         #adds 60% transparent bar under the caption
         #Bar starts 5 pixels above caption and ends at the bottom
-        text_caption_bar = text_caption.on_color(size=(clip.w, text_caption.h+5),
-                color=(0,0,0), pos=('center'), col_opacity=0.6)
-        text_caption_with_bar = text_caption_bar.set_pos(('center', 'bottom'))
-        conc_clips.append(CompositeVideoClip([clip, text_caption_with_bar]) \
+        if not swimm:
+            text_caption_bar = text_caption.on_color(size=(clip.w, text_caption.h+5),
+                    color=(0,0,0), pos=('center'), col_opacity=0.6)
+            text_caption_with_bar = text_caption_bar.set_pos(('center',
+                'bottom'))
+        else:
+            text_caption_with_bar = text_caption.set_pos(('center', 20))
+        clips = [clip, text_caption_with_bar]
+        if swimm:
+            #TODO: make location of this configurable
+            swim_clip = \
+            SVGImageClip("/home/mabu/programiranje/overlay/projects/glein/images/swimming-15.svg",
+                    width=90, height=90).set_pos(('center',
+                clip.h-20-90))
+            clips.append(swim_clip)
+        conc_clips.append(CompositeVideoClip(clips) \
                 .set_duration(clip.duration))
     if test:
         for clip in conc_clips:
