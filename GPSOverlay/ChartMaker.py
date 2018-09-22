@@ -16,7 +16,7 @@ class ChartMaker(object):
 
 
     def __init__(self, gpx_data, wanted_value, figure_size, opacity=0.8,
-            transparent=True, dpi=96):
+            transparent=True, dpi=96, y_lim=None):
         self.circle, self.radius = DefaultConfig._make_circle(6, (255,0,0))
         #self.circle = self.circle.set_opacity(opacity)
         self.width, self.height = figure_size
@@ -30,6 +30,8 @@ class ChartMaker(object):
         plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
         hspace = 0, wspace = 0)
         plt.margins(0, 0)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
         ax.fill_between(range(0,len(elevations)), 0, elevations,
                 color="#163c6277")
         #dpi = self.fig.get_dpi()
