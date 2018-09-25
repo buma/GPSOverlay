@@ -147,6 +147,9 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
                     .fx(resize, height=height, width=width) for image in images)
     conc_clips = []
     for clip, text in zip(clips, titles):
+        if font is None:
+            conc_clips.append(clip)
+            continue
         #TODO: make text caption style configurable
         #Swimming changes text color to light blue, moves text up and resized
         #it
