@@ -1,5 +1,6 @@
 import os
 import types
+import numpy as np
 
 from moviepy.video.VideoClip import VideoClip, ImageClip, TextClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
@@ -7,6 +8,7 @@ from moviepy.editor import concatenate_videoclips
 from moviepy.video.fx.resize import resize
 from moviepy.video.fx.scroll import scroll
 import moviepy.video.compositing.transitions as transfx
+from moviepy.video.fx.fadein import fadein
 
 from ..SVGImageClip import SVGImageClip
 
@@ -95,6 +97,192 @@ def image_effect(clip, screensize, duration=None, speed=None):
         return panorama(clip, screensize, duration, speed)
     return zoom(clip, screensize)
 
+def make_clip(clip, text, height, width, font, font_color, fontsize):
+    if font is None:
+        return clip
+    #TODO: make text caption style configurable
+    #Swimming changes text color to light blue, moves text up and resized
+    #it
+    #It also adds black stroke that's why resizing is needed
+    #And adds icon of swimming on the bottom
+    if text.startswith("KOP:"):
+        text = text[4:]
+        font_color_c="#00aaff"
+        pos = "top"
+        swimm = True
+        stroke_color="black"
+        factor=2
+        mult=1.4*factor
+    else:
+        font_color_c = font_color
+        pos = "bottom"
+        swimm = False
+        stroke_color = None
+        mult=1
+        factor=1
+    if width is None:
+        text_space_size = None
+    else:
+        text_space_size = (width*factor, 40*factor)
+    text_caption = TextClip(text, size=text_space_size, method="caption",
+            align="center",
+            color=font_color_c, fontsize=fontsize*mult, font=font,
+            stroke_color=stroke_color)
+    if swimm:
+        text_caption = text_caption.fx(resize, height=text_caption.h/2)
+    text_caption = text_caption.set_pos(("center", "center"))
+    #print (clip.size, tc.size)
+    #TODO: makes transparent bar size same size (based on highest caption)
+    #adds 60% transparent bar under the caption
+    #Bar starts 5 pixels above caption and ends at the bottom
+    if not swimm:
+        text_caption_bar = text_caption.on_color(size=(clip.w, text_caption.h+5),
+                color=(0,0,0), pos=('center'), col_opacity=0.6)
+        text_caption_with_bar = text_caption_bar.set_pos(('center',
+            'bottom'))
+    else:
+        text_caption_with_bar = text_caption.set_pos(('center', 20))
+    clips = [clip, text_caption_with_bar]
+    if swimm:
+        #TODO: make location of this configurable
+        swim_clip = \
+        SVGImageClip("/home/mabu/programiranje/overlay/projects/glein/images/swimming-15.svg",
+                width=90, height=90).set_pos(('center',
+            clip.h-20-90))
+        clips.append(swim_clip)
+    return (CompositeVideoClip(clips) \
+            .set_duration(clip.duration))
+
+class SlideshowImagesClip(VideoClip):
+
+    def __init__(self, sequence, titles, height=None, width=None, image_duration=4,
+        transition_duration=1, fontsize=30, font="M+-1p-medium",
+        font_color="white", zoom_images=False, test=False):
+        """Function makes slideshow VideoClip from sequence of images with their
+        captions
+        
+        Parameters
+        ---------
+        sequence
+            List of paths to images
+        titles : list
+            List of image captions
+        height
+            Height of wanted VideoClip
+        width
+            Width of wanted VideoClip
+        image_duration
+            How long is one image visible
+        transition_duration
+            How long is fade transition between images
+        fontsize
+            Font point size
+        font
+            Name of the font to use. See ``TextClip.list('font')`` for
+        the list of fonts you can use on your computer.
+        font_color
+            Color of the text. See ``TextClip.list('color')`` for a
+        list of acceptable names.
+        test : bool
+            If true shows each image with caption in preview
+
+
+        """
+
+        VideoClip.__init__(self, ismask=False)
+        image_duration+=transition_duration*2
+        #FIXME: duration is wrong if there is panorama in images
+        tt = np.cumsum([0] + list(np.repeat(image_duration, len(sequence))))
+        #print (tt)
+        self.images_starts = np.maximum(0, tt + (-1*transition_duration)*np.arange(len(tt)))
+        self.duration = self.images_starts[-1]
+        self.end = self.images_starts[-1]
+        self.sequence = sequence
+        #print(self.images_starts)
+        #print ("DUR:", self.duration)
+        def find_image_index(t):
+            return max([i for i in range(len(self.sequence))
+                              if self.images_starts[i]<=t])
+        self.lastindex = None
+        self.lastimage = None
+
+        self.previndex = None
+        self.previmage = None
+
+        def load_clip(index):
+            image = self.sequence[index]
+            if height is None and width is None:
+                clip = ImageClip(image, duration=image_duration)
+            else:
+                if zoom_images:
+                    clip = ImageClip(image, duration=image_duration) \
+                            .fx(image_effect, screensize=(width, height), \
+                            duration=20)
+                else:
+                    clip = ImageClip(image, duration=image_duration) \
+                            .fx(resize, height=height, width=width)
+            text = titles[index]
+            #Adds text label etc. on clip
+            clip = make_clip(clip, text, height, width, font, font_color,
+            fontsize)
+            return clip
+
+        def make_frame(t):
+        
+            index = find_image_index(t)
+            fade = False
+            #print ("INDEX:", index)
+            #print ("TIME:", t, t-self.images_starts[index])
+            clip_time = t- self.images_starts[index]
+            #At the start of the clip we need to fade to the next
+            if clip_time < transition_duration:
+                fade = True
+                #print ("FADE IN")
+
+                if self.lastindex == index-1 and self.previndex != index-1:
+                    self.previmage = self.lastimage
+                    self.previndex = self.lastindex
+
+                #print ("PREV IDX:", self.previndex)
+
+            #If we need to load new image we load it add the mask and add fade
+            #if needed
+            if index != self.lastindex:
+                clip = load_clip(index)
+                #TODO: is mask actually needed outside fading?
+                clip.mask.duration = clip.duration
+                newclip = clip.copy()
+                newclip.mask = clip.mask.fx(fadein, transition_duration)
+
+                self.lastimage = newclip
+                self.lastindex = index
+            
+            #Fading between two images
+            if fade and self.previmage:
+                image = self.lastimage.blit_on(
+                        self.previmage.get_frame(t-self.images_starts[self.previndex]),
+                        t-self.images_starts[self.lastindex])
+            else:
+                #Fade at the start where we don't have previous image
+                #TODO: is this actually needed
+                if fade:
+                    self.set_mask(
+                            self.lastimage.mask)
+                    #print ("Fade MASK")
+                else:
+                    self.mask = None
+                #Normal image without fading
+                image = self.lastimage.get_frame(t-self.images_starts[index])
+            return image
+
+        self.make_frame = make_frame
+        if width is not None and height is not None:
+            self.size = (width, height)
+        else:
+            self.size = make_frame(0).shape[:2][::-1]
+
+
+#@profile
 def make_image_slideshow(sequence, titles, height=None, width=None, image_duration=4,
         transition_duration=1, fontsize=30, font="M+-1p-medium",
         font_color="white", zoom_images=False, test=False):
@@ -131,10 +319,12 @@ def make_image_slideshow(sequence, titles, height=None, width=None, image_durati
     #TODO: list of clip effects (so that panoramas can be panorama or specific
     #panorama)
     #TODO: support folder as a sequence
-    image_duration+=transition_duration*2
     images = sequence
     assert len(images) == len(titles), "Number of images and titles needs \
     to be the same"
+    return SlideshowImagesClip(images, titles, height, width, image_duration,
+            transition_duration, fontsize, font, font_color, zoom_images, test)
+    image_duration+=transition_duration*2
     if height is None and width is None:
         clips = (ImageClip(image, duration=image_duration) \
                 for image in images)
