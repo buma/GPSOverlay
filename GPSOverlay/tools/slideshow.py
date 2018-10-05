@@ -12,7 +12,7 @@ from moviepy.video.fx.fadein import fadein
 
 from ..SVGImageClip import SVGImageClip
 
-def zoom(clip, screensize):
+def zoom(clip, screensize, show_full_height=False):
     """Zooms preferably image clip for clip duration a little
 
     To make slideshow more movable
@@ -23,13 +23,17 @@ def zoom(clip, screensize):
         ImageClip on which to work with duration
     screensize
         Wanted (width, height) tuple
+    show_full_height
+        Should this image be shown in full height. This is usefull when 4:3
+        images are shown in 16:9 video and need to be shown in full.
+        Otherwise they are shown in full width and top and bottom is cut off.
 
     Returns
     ------
     VideoClip in desired size
     """
     #We need to resize high imageč differently
-    if clip.h > clip.w:
+    if clip.h > clip.w or show_full_height:
         clip_resized = (clip.fx(resize, width=screensize[0]*2)
                     .fx(resize, lambda t : 1+0.02*t)
                     .set_position(('center', 'center'))
@@ -92,10 +96,10 @@ def panorama(clip, screensize, duration=None, speed=None, freeze_duration=1.5):
         #FIXME: why is +1 actually needed without it there is no freeze at end
         scrolled.to_ImageClip(scrolled.duration).set_duration(freeze_duration+1)])
  
-def image_effect(clip, screensize, duration=None, speed=None):
+def image_effect(clip, screensize, duration=None, speed=None, show_full_height=False):
     if clip.w/clip.h > 2:
         return panorama(clip, screensize, duration, speed)
-    return zoom(clip, screensize)
+    return zoom(clip, screensize, show_full_height)
 
 def make_clip(clip, text, height, width, font, font_color, fontsize):
     if font is None:
@@ -211,17 +215,22 @@ class SlideshowImagesClip(VideoClip):
 
         def load_clip(index):
             image = self.sequence[index]
+            text = titles[index]
+            if text.startswith("W:"):
+                text = text[2:]
+                show_full_height = True
+            else:
+                show_full_height = False
             if height is None and width is None:
                 clip = ImageClip(image, duration=image_duration)
             else:
                 if zoom_images:
                     clip = ImageClip(image, duration=image_duration) \
                             .fx(image_effect, screensize=(width, height), \
-                            duration=20)
+                            duration=20, show_full_height=show_full_height)
                 else:
                     clip = ImageClip(image, duration=image_duration) \
                             .fx(resize, height=height, width=width)
-            text = titles[index]
             #Adds text label etc. on clip
             clip = make_clip(clip, text, height, width, font, font_color,
             fontsize)
