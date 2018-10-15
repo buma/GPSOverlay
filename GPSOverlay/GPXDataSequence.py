@@ -61,6 +61,9 @@ class GPXDataSequence(VideoClip):
 
     interval
       Time between shots. Used to set images times with sub-second precission
+    
+    max_image_delay
+      Maximal delay between images.
 
     data_clips
       Dictionary, where key can be one of ['lat', 'lon', 'bearing',
@@ -87,14 +90,14 @@ class GPXDataSequence(VideoClip):
     @classmethod
     def from_sequence_with_breaks(cls, sequence, fps=None, durations=None, with_mask=True,
             ismask=False, load_images=False, gpx_file=None, time_offset=0,
-            interval=0, speedup_factor=24, config=None):
+            interval=0, speedup_factor=24, config=None, max_image_delay=None):
 
         if fps is not None:
             #It needs to be wanted FPS*image taken interval?
             speedup_factor=fps*3
 
         clip = ImageSequenceClipDelay(sequence, durations, with_mask, ismask,
-                load_images, speedup_factor)
+                load_images, speedup_factor, max_image_delay=max_image_delay)
         return cls(clip, gpx_file, time_offset, interval,
                 speedup_factor, None, config)
 

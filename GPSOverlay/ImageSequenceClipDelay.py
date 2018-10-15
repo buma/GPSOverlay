@@ -29,6 +29,8 @@ class ImageSequenceClipDelay(ImageSequenceClip):
        at 3 second interval played at 8 FPS)
     effect_length
       How long should zoom_in/out effect be (seconds)
+    max_image_delay
+      Maximal delay between images.
     Notes
     ------
     If your sequence is made of image files, the only image kept in
@@ -36,7 +38,8 @@ class ImageSequenceClipDelay(ImageSequenceClip):
     """
     FORMAT="%Y%m%d_%H%M%S.JPG"
     def __init__(self, sequence, durations=None, with_mask=True,
-                 ismask=False, load_images=False, speedup_factor=24):
+                 ismask=False, load_images=False, speedup_factor=24,
+                 max_image_delay=None):
         def make_time_diff(func, sequence):
             """Makes time difference for sequence
             and function which should return datetime
@@ -44,7 +47,10 @@ class ImageSequenceClipDelay(ImageSequenceClip):
             prev = None
             for file, dt in map(func, sorted(sequence)):
                 if prev is not None:
-                    yield (dt-prev).seconds, file
+                    if max_image_delay is None:
+                        yield (dt-prev).seconds, file
+                    else:
+                        yield min(max_image_delay, (dt-prev).seconds), file
                 prev = dt
 
         #ImageSequenceClip.__init__(self,sequence, fps, durations, with_mask,
