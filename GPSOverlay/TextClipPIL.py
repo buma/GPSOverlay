@@ -80,7 +80,6 @@ class TextClipPIL(ImageClip):
 #https://www.quora.com/Which-graphics-module-for-Python-is-best-for-antialiased-drawing
         self.txt = txt
         self.color = color
-        self.stroke_color = stroke_color
         if fontsize is None and size is not None and font is not None:
             fontsize = self._find_fontsize(font, size)
         elif fontsize is None:
@@ -103,7 +102,7 @@ class TextClipPIL(ImageClip):
             size = font.getsize(txt)
             size = tuple(math.ceil(x) for x in size)
         if print_cmd:
-            print (mode, fontsize, size)
+            print (txt, mode, fontsize, size)
 
         
         if transparent and bg_color == "transparent":
@@ -116,7 +115,13 @@ class TextClipPIL(ImageClip):
         else:
             im = Image.new(mode, size)
         d = ImageDraw.Draw(im)
+        #Stroke color:
+        #https://mail.python.org/pipermail/image-sig/2009-May/005681.html
         #d.fontmode = "l"
+        #d.text((0-1,0), txt, fill=stroke_color, font=font)
+        #d.text((0+1,0), txt, fill=stroke_color, font=font)
+        #d.text((0,0-1), txt, fill=stroke_color, font=font)
+        #d.text((0,0+1), txt, fill=stroke_color, font=font)
         d.text((0,0), txt, fill=color, font=font)
 
         ImageClip.__init__(self, np.asarray(im), transparent=transparent)
