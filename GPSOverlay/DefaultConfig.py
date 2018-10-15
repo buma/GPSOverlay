@@ -219,7 +219,8 @@ class DefaultConfig(object):
     def make_map_config(self, map_width=250, map_height=250,
             map_zoom=16, map_mapfile=None, gpx_style=None,
             gpx_file=True, font_path=None, func=None, position=None, maps_cache=None,
-            support_breaks=False, position_break_func=None
+            support_breaks=False, position_break_func=None,
+            angle_offset=None
             ):
         try:
             from .MapnikRenderer import MapnikRenderer
@@ -245,7 +246,7 @@ class DefaultConfig(object):
                 "_run_func":("render_map", {
                     "_DICT": "gps_info",
 #lat, lon, angle parameters will be copied from gps_info
-                    "angle_offset": -10,
+                    "angle_offset": self._if_set(angle_offset, -10),
                     })
                 }
         no_break_position_func = self._if_set(position, lambda t, W,H: t.set_pos((W-t.w-self.padding.right,
