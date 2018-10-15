@@ -212,6 +212,8 @@ def interpolate_lat_lon(points, t, max_dt=1):
     else:
         ele = None
 
+    #Slope interpolation doesn't work
+    #slope = 0
     if before[4] is not 0:
         if dt_before == 0:
             speed = before[4]
@@ -220,8 +222,11 @@ def interpolate_lat_lon(points, t, max_dt=1):
             #print (dt_before, dt_after, lat, lon, speed, t)
             #print(before, '\n', after)
 #speed is calculated as distance/time
-            speed = gpxpy.geo.distance(before[1], before[2], before[3],lat, lon,
-                    ele)/dt_before
+            dist = gpxpy.geo.distance(before[1], before[2], before[3], lat, lon,
+                    ele)
+            speed = dist/dt_before
+            #if ele is not None:
+                #slope = (ele-before[3])/dist
 #Simple interpolation
     else:
         speed = 0
