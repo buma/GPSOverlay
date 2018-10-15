@@ -413,7 +413,8 @@ class DefaultConfig(object):
         circle_clip = ImageClip(circle((2*radius, 2*radius), (radius, radius), radius,
             color, (0,0,0)))
 #Make mask from it (channel 1 - green) since it's single color
-        circle_mask = circle_clip.to_mask(1)
+        circle_mask = ImageClip(circle((2*radius, 2*radius), (radius, radius), radius,
+            1, 0), ismask=True)
 #And use it as a mask
         circle_clip = circle_clip.set_mask(circle_mask)
         return circle_clip, radius
