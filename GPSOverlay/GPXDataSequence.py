@@ -6,6 +6,7 @@ import time
 import math
 import itertools
 from operator import itemgetter
+from collections import Counter
 
 #from moviepy.video.VideoClip import VideoClip
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
@@ -65,6 +66,10 @@ class GPXDataSequence(VideoClip):
     max_image_delay
       Maximal delay between images.
 
+    calculate_stats
+      If True it is calculated for each data clip how much time it took to
+      create clips for each frame. This is shown in str method of this class.
+
     data_clips
       Dictionary, where key can be one of ['lat', 'lon', 'bearing',
       'elevation', 'speed', 'heart', 'datetime', 'map'] and value is a function which gets
@@ -90,7 +95,8 @@ class GPXDataSequence(VideoClip):
     @classmethod
     def from_sequence_with_breaks(cls, sequence, fps=None, durations=None, with_mask=True,
             ismask=False, load_images=False, gpx_file=None, time_offset=0,
-            interval=0, speedup_factor=24, config=None, max_image_delay=None):
+            interval=0, speedup_factor=24, config=None, max_image_delay=None,
+            calculate_stats=False):
 
         if fps is not None:
             #It needs to be wanted FPS*image taken interval?
@@ -99,11 +105,14 @@ class GPXDataSequence(VideoClip):
         clip = ImageSequenceClipDelay(sequence, durations, with_mask, ismask,
                 load_images, speedup_factor, max_image_delay=max_image_delay)
         return cls(clip, gpx_file, time_offset, interval,
-                speedup_factor, None, config)
+                speedup_factor, None, config, calculate_stats=calculate_stats)
 
     def __init__(self, clip, gpx_file=None, time_offset=0,
-            interval=0, speedup_factor=1, clip_start_time=None, config=None):
+            interval=0, speedup_factor=1, clip_start_time=None, config=None,
+            calculate_stats=False):
 
+        self.stats = Counter()
+        self.calculate_stats = calculate_stats
         self.clip = clip
         duration = clip.duration
 #Finds breaks in image sequences (Break is when we have GPS information but no
@@ -225,9 +234,14 @@ class GPXDataSequence(VideoClip):
         #print (gps_info, self.data_clips)
 # For each wanted datafield make clip and set position
         for key, key_config in self.config.make_items():
+            if self.calculate_stats:
+                start_key = time.time()
             c = key_config.get_clip(key, gps_info, gpx_index, self.w,
                     self.h, break_video, end_break_time,
                     t-self.images_starts[index])
+            if self.calculate_stats:
+                self.stats[key]+=time.time()-start_key
+            #print(self.stats)
             if c is None:
                 continue
             #print (key, "==", c.pos(t), c.w, c.h)
@@ -307,6 +321,11 @@ class GPXDataSequence(VideoClip):
             diff = math.floor(self.duration)-prev_break[0]
             ret_string.append("{}s {}".format(datetime.timedelta(seconds=diff), prev_break[1]))
 
+        if self.calculate_stats:
+            ret_string.append("Stats:")
+            for key, cnt in self.stats.items():
+                ret_string.append("{}: {}".format(key,
+                    datetime.timedelta(seconds=cnt)))
         ret_string.append("</GPXDataSequence>")
         return "\n".join(ret_string)
 
