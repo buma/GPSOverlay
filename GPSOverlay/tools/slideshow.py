@@ -253,6 +253,14 @@ class SlideshowImagesClip(VideoClip):
                     self.previndex = self.lastindex
 
                 #print ("PREV IDX:", self.previndex)
+            #When we are on last image we delete previous one from memory
+            #Instead of 2 images in memory we have only one
+            #Bu this can only happen on last image
+            elif self.previndex and index == len(self.sequence)-1:
+                #print ("LAST INDEX")
+                del self.previmage
+                self.previmage = None
+                self.previndex = None
 
             #If we need to load new image we load it add the mask and add fade
             #if needed
@@ -282,6 +290,15 @@ class SlideshowImagesClip(VideoClip):
                     self.mask = None
                 #Normal image without fading
                 image = self.lastimage.get_frame(t-self.images_starts[index])
+            #print ("DIFF:", self.duration-t, 1/25)
+            #Deletes image from memory if we are closer to end of the clip as
+            #last frame in 25 FPS
+            #If we are wrong we will just load the image again
+            if index == len(self.sequence)-1 and self.duration-t < 2/25:
+                #print ("LAST FRAME")
+                del self.lastimage
+                self.lastimage = None
+                self.lastindex = None
             return image
 
         self.make_frame = make_frame
