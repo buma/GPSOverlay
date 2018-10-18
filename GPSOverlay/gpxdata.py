@@ -84,7 +84,8 @@ class GPXData(object):
                 self._add_exif_using_timestamp(filepath, file_creation_time, self.gpx,
                         time_offset, 0)
             if gpx_file is not None:
-                assert (len(sequence)==len(self.gpx_data)) 
+                assert (len(sequence)==len(self.gpx_data)) , "{} != {}".format(len(sequence), 
+                len(self.gpx_data))
         if gpx_start_time is not None:
             self.gpx_start_time = gpx_start_time
         elif self.gpx_data:
