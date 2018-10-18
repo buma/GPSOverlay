@@ -177,9 +177,16 @@ class GPXDataSequence(VideoClip):
         if index is None:
             index = self.find_image_index(t)
         time_cur = self.images_starts[index]
-        time_next = self.images_starts[index+1]
+        try:
+            time_next = self.images_starts[index+1]
+            dt_diff = self.gpx_data.gpx_data[index+1].datetime-self.gpx_data.gpx_data[index].datetime
+        except IndexError as iex:
+            print ("Index error make_gpx")
+            time_next = time_cur+(time_cur-self.images_starts[index-1])
+            dt_diff = self.gpx_data.gpx_data[index].datetime - \
+                    self.gpx_data.gpx_data[index-1].datetime
+
         time_diff = time_next-time_cur
-        dt_diff = self.gpx_data.gpx_data[index+1].datetime-self.gpx_data.gpx_data[index].datetime
         from_start = t-self.images_starts[index]
 
         #This reduces number of maps from 1032 to 571 in 45 seconds of video
