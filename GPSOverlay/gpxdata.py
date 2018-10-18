@@ -145,10 +145,16 @@ class GPXData(object):
                 interpolate_lat_lon(self.gpx, t)
         #if not return_index:
         corrected_bearing = (bearing + offset_bearing) % 360
+        #FIXME: this needs to be interpolated
+        if index is None:
+            slope = None
+        else:
+            slope = self.gpx_data[index].slope
 #Returned times are not the same as times in Exif pictures they differ by
         #offset time since this is GPX time
         data = GPSData(lat, lon, corrected_bearing, elevation,
-            speed, heart, t, None, None, offset_time), idx
+            speed, heart, t, None, slope, offset_time), idx
+        #print ("RETURNED GEO:", data)
         return data
         #else:
             #return idx
