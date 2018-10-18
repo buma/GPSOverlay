@@ -274,10 +274,14 @@ class SlideshowImagesClip(VideoClip):
             #if needed
             if index != self.lastindex:
                 clip = load_clip(index)
-                #TODO: is mask actually needed outside fading?
-                clip.mask.duration = clip.duration
-                newclip = clip.copy()
-                newclip.mask = clip.mask.fx(fadein, transition_duration)
+                #print ("MASK:", clip.mask)
+                if clip.mask:
+                    #TODO: is mask actually needed outside fading?
+                    clip.mask.duration = clip.duration
+                    newclip = clip.copy()
+                    newclip.mask = clip.mask.fx(fadein, transition_duration)
+                else:
+                    newclip = clip
 
                 self.lastimage = newclip
                 self.lastindex = index
@@ -288,14 +292,15 @@ class SlideshowImagesClip(VideoClip):
                         self.previmage.get_frame(t-self.images_starts[self.previndex]),
                         t-self.images_starts[self.lastindex])
             else:
-                #Fade at the start where we don't have previous image
-                #TODO: is this actually needed
-                if fade:
-                    self.set_mask(
-                            self.lastimage.mask)
-                    #print ("Fade MASK")
-                else:
-                    self.mask = None
+                ##Fade at the start where we don't have previous image
+                ##TODO: is this actually needed
+                #if fade:
+                    #self.set_mask(
+                            #self.lastimage.mask)
+                    ##print ("Fade MASK")
+                #else:
+                    #self.mask = None
+                self.mask = None
                 #Normal image without fading
                 image = self.lastimage.get_frame(t-self.images_starts[index])
             #print ("DIFF:", self.duration-t, 1/25)
