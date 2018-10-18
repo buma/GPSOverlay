@@ -148,11 +148,12 @@ def make_clip(clip, text, height, width, font, font_color, fontsize):
         text_caption_with_bar = text_caption.set_pos(('center', 20))
     clips = [clip, text_caption_with_bar]
     if swimm:
+        swimm_size = fontsize
         #TODO: make location of this configurable
         swim_clip = \
         SVGImageClip("/home/mabu/programiranje/overlay/projects/glein/images/swimming-15.svg",
-                width=90, height=90).set_pos(('center',
-            clip.h-20-90))
+                width=swimm_size, height=swimm_size).set_pos(('center',
+            clip.h-20-swimm_size))
         clips.append(swim_clip)
     return (CompositeVideoClip(clips) \
             .set_duration(clip.duration))
