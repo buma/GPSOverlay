@@ -228,6 +228,13 @@ class SlideshowImagesClip(VideoClip):
                     clip = ImageClip(image, duration=image_duration) \
                             .fx(image_effect, screensize=(width, height), \
                             duration=20, show_full_height=show_full_height)
+                elif show_full_height:
+                    clip = ImageClip(image, duration=image_duration) \
+                            .fx(resize, height=height).set_position('center',
+                                    'center')
+                    clip = CompositeVideoClip([clip], 
+                                            size=(width, height))
+
                 else:
                     clip = ImageClip(image, duration=image_duration) \
                             .fx(resize, height=height, width=width)
