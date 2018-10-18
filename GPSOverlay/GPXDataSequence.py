@@ -113,7 +113,7 @@ class GPXDataSequence(VideoClip):
             self.have_any_breaks = any((duration > (config.effect_length*2+2) for duration in
                 self.clip.durations))
             self.gpx_data = GPXData(sequence=self.clip.sequence,
-                    gpx_file=gpx_file)
+                    gpx_file=gpx_file,time_offset=time_offset)
             self.durations = self.clip.durations
             self.images_starts = self.clip.images_starts
             self.find_image_index = lambda t: max([i for i in range(len(self.clip.sequence))
