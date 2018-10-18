@@ -303,7 +303,7 @@ class GPXDataSequence(VideoClip):
                 prev_break = break_
 
         #If at last time break wasn't changed we also need to return it
-        if prev_break[0] != math.floor(self.duration):
+        if prev_break is not None and  prev_break[0] != math.floor(self.duration):
             diff = math.floor(self.duration)-prev_break[0]
             ret_string.append("{}s {}".format(datetime.timedelta(seconds=diff), prev_break[1]))
 
