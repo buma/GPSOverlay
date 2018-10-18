@@ -186,6 +186,9 @@ class GPXData(object):
                 slope = round((elevation-last.elevation)/length*100)
             return GPSData(lat, lon, bearing, elevation, speed, None, t,
                     None, slope, None)
+        except KeyError as e:
+            print ("No latitude in {}".format(filename))
+            raise e
         except ValueError as e:
             print("Skipping {0}: {1}".format(filename, e))
 
