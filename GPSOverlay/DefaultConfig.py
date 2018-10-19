@@ -374,7 +374,12 @@ class DefaultConfig(object):
                 if data is None:
                     continue
                 #print (key, key_config)
-                created_clip =key_config.func(data)
+                if key == "map":
+                    map_conf = key_config.config
+                    created_clip = ColorClip((map_conf["map_w"],
+                        map_conf["map_h"]), [23,8,89])
+                else:
+                    created_clip =key_config.func(data)
                 if created_clip is None:
                     continue
                 c = key_config.position(created_clip, f.shape[1], f.shape[0])
