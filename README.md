@@ -49,4 +49,4 @@ Examples are in example subfolder:
 
 ![image with SD ratio](/examples/glein.jpg)
 ![image with default config](/examples/glein_config.jpg)
-![image with custom config](/examples/glein_custom_config.jpg)
+![image with custom config](/examples/glein_config_custom.jpg)
